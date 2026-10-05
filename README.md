@@ -65,15 +65,27 @@ en fusionnant `main` (voir [Suivre l'application publique](#suivre-lapplication-
 
 **Administrateur** (`admin`) :
 - créer un revendeur (mot de passe provisoire affiché une fois, changement imposé à la première connexion) ;
+- créer un **distributeur** (case à cocher) ou promouvoir un revendeur existant ;
 - ajouter des crédits après paiement (négatif = correction, jamais en dessous de zéro), avec une note de référence ;
 - suspendre / réactiver un revendeur (coupe toutes ses licences), réinitialiser son mot de passe, consulter le grand livre.
 
-**Revendeur** :
+**Distributeur** (revendeur promu par l'administrateur, phase 2) — tout ce que fait un revendeur, plus le menu **Network** :
+- créer des **sous-revendeurs** (mot de passe provisoire affiché une fois) ;
+- leur **transférer** des crédits depuis son solde, ou **reprendre** des crédits inutilisés (jamais de solde négatif) ;
+- suivre leur activité (solde, clients, activations sur 30 jours, dernière activation) et les totaux du réseau ;
+- **suspendre** un sous-revendeur (ses clients sont bloqués, son accès au panneau aussi) ;
+- envoyer une annonce à **tout son réseau** (clients de tous ses sous-revendeurs).
+Si l'administrateur suspend un distributeur, tout son réseau est suspendu (clients et accès).
+
+**Revendeur** (ou sous-revendeur) :
 - accepter le contrat (obligatoire avant toute activation) ;
 - **activer** un code appareil (nouveau client : 1 crédit ; 2ᵉ appareil d'un client : gratuit) ;
 - clients : renouveler (+1 an depuis la fin actuelle, 1 crédit), suspendre / reprendre, détacher un appareil (changement de box), libellé et note ;
 - **annonces** à tous ses clients ou à un client, avec durée de visibilité et nombre de lectures ;
 - profil : nom affiché, WhatsApp, Telegram, texte de support (montrés dans l'application).
+- **activation en lot** (une liste de codes, résultat par code) ;
+- **prolongation d'essai** : +7 jours, gratuite, une seule fois par appareil (pour laisser un prospect tester) ;
+- **exports CSV** des clients et de l'historique des crédits.
 
 ## API appareil (application)
 
@@ -145,7 +157,7 @@ pour ne jamais l'ajouter par erreur au dépôt public.
 ## Développement
 
 ```bash
-cd reseller-worker && npm ci && npm test          # Worker : 43 tests (D1 et Durable Object simulés)
+cd reseller-worker && npm ci && npm test          # Worker : 58 tests (D1 et Durable Object simulés)
 cd web && npm ci && npm test                      # bureau / web (dont logique de licence)
 cd web && VITE_EDITION=pro npm run build          # web en édition Pro
 cd electron && npm ci && npm test && npm run package:pro:win   # installateur Windows Pro local

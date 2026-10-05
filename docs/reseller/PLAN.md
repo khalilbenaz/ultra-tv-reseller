@@ -157,3 +157,17 @@ CREATE TABLE message_read (message_id TEXT, device_id TEXT, read_at INTEGER, PRI
 Applications : `-PULTRA_EDITION=pro` (Android, identifiant `com.ultratv.pro`) et `VITE_EDITION=pro` +
 `electron-builder -c electron-builder.pro.cjs` (bureau, identifiant `com.ultratv.pro`, dossier de données séparé).
 L'application publique (édition standard) n'est pas modifiée dans son comportement.
+
+## 8. Phase 2 — réseau de distribution (✅ 2026-10-05)
+
+- **Deux niveaux** : distributeur (`is_distributor = 1`, sans parent) → sous-revendeurs (`parent_id`). Un sous-revendeur
+  ne peut pas créer de sous-revendeurs.
+- **Transferts / reprises** de crédits : deux lignes du grand livre (`transfer`) de même référence dans un lot D1 ; la
+  première est conditionnée au solde → jamais de négatif, rien de créé ni perdu (testé : 10 transferts simultanés).
+- **Suspension en cascade** : distributeur suspendu ⇒ clients de ses sous-revendeurs suspendus, activations refusées,
+  accès au panneau coupé ; un sous-revendeur suspendu ne bloque que ses propres clients.
+- **Annonces réseau** (`target = 'network'`) visibles par les clients de tous les sous-revendeurs du distributeur.
+- **Outils commerciaux** : activation en lot, prolongation d'essai +7 j (une fois par appareil, colonne
+  `device.trial_extended`), exports CSV clients et grand livre (cellules commençant par = + - @ neutralisées).
+- Migration `0003_network.sql`. Le distributeur revend ses crédits au prix qu'il veut, hors plateforme : seul le
+  distributeur est facturé par l'éditeur.
