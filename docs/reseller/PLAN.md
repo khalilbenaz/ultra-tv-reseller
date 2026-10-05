@@ -128,10 +128,10 @@ CREATE TABLE message_read (message_id TEXT, device_id TEXT, read_at INTEGER, PRI
 |---|---|---|
 | 0 | Décision §2, contrat revendeur relu par un juriste, grille de prix | — (toi) |
 | 1 ✅ | D1 + schéma + API `register` / `status` signé + tests (16) — `reseller-worker/` | fait le 2026-10-05 |
-| 2 | Panneau : admin crédits, activation, clients, renouvellement, suspension | 5–6 jours |
-| 3 | App : écran d'activation, contrôle hors ligne, expiration (Android + bureau) | 4–5 jours |
-| 4 | Annonces : panneau + boîte de réception dans l'app | 3–4 jours |
-| 5 | Contact support, finitions, recette avec 2–3 vrais appareils du revendeur | 2–3 jours |
+| 2 ✅ | Panneau : admin crédits, activation, clients, renouvellement, suspension, contrat | fait le 2026-10-05 |
+| 3 ✅ | App « Ultra TV Pro » : écran d'activation, contrôle hors ligne signé, expiration (Android + bureau) | fait le 2026-10-05 |
+| 4 ✅ | Annonces : panneau + affichage dans l'app (au démarrage) | fait le 2026-10-05 |
+| 5 🟡 | Contact support ✅ ; recette avec 2–3 vrais appareils du revendeur | à faire avec Basil |
 | **Total pilote** | | **≈ 4 à 6 semaines** à temps partiel |
 
 ## 6. Questions ouvertes
@@ -141,3 +141,19 @@ CREATE TABLE message_read (message_id TEXT, device_id TEXT, read_at INTEGER, PRI
 - Changement de box : détachement libre par le revendeur, ou limité (ex. 2 par an) ?
 - Remboursement d'un crédit si activation annulée sous 48 h ?
 - Marque blanche : nom/logo/couleurs par revendeur — dans le pilote ou après ?
+
+## 7. En production (2026-10-05)
+
+| Élément | Où |
+|---|---|
+| Worker revendeur | https://ultratv-reseller.khalilbenaz.workers.dev (panneau, `/download`, API `/api/lic/*`) |
+| Base D1 | `ultratv-reseller` (migrations 0001, 0002) |
+| Secrets Worker | `LICENSE_SIGNING_KEY` (Ed25519), `SESSION_SECRET` |
+| Clés locales (hors dépôt) | `~/.config/ultra-tv-pro/` : clé de signature des licences, mot de passe admin initial, keystore Android Pro |
+| Secrets CI (dépôt privé) | `PRO_KEYSTORE_BASE64`, `PRO_KEYSTORE_PASSWORD`, `PRO_KEY_ALIAS` |
+| Distribution | dépôt public `khalilbenaz/ultra-tv-pro` (releases `vX.Y.Z`, aucun code) |
+| Build | workflow `Pro release` (tag `pro-vX.Y.Z`), publication : `scripts/publish-pro.sh <run>` |
+
+Applications : `-PULTRA_EDITION=pro` (Android, identifiant `com.ultratv.pro`) et `VITE_EDITION=pro` +
+`electron-builder -c electron-builder.pro.cjs` (bureau, identifiant `com.ultratv.pro`, dossier de données séparé).
+L'application publique (édition standard) n'est pas modifiée dans son comportement.

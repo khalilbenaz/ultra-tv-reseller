@@ -18,3 +18,9 @@ test("aucune release de bureau : null", () => {
   assert.strictEqual(pickDesktopTag([{ tag_name: "v1.2.22" }]), null);
   assert.strictEqual(pickDesktopTag(null), null);
 });
+
+test("édition Pro : releases vX.Y.Z du dépôt de distribution, jamais les desktop-v*", () => {
+  const rel = [{ tag_name: "desktop-v9.9.9" }, { tag_name: "v1.2.23" }, { tag_name: "v1.3.0" }, { tag_name: "v2.0.0", draft: true }];
+  assert.strictEqual(pickDesktopTag(rel, "v"), "v1.3.0");
+  assert.strictEqual(pickDesktopTag(rel), "desktop-v9.9.9");
+});

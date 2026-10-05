@@ -400,6 +400,8 @@ if (!app.requestSingleInstanceLock()) {
 
     updater = createUpdater({
       app,
+      // Édition Pro : champ ajouté au package.json par electron-builder.pro.cjs.
+      edition: require("./package.json").ultratvEdition === "pro" ? "pro" : "standard",
       send: (status) => {
         if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send("ut:update:status", status);
       },

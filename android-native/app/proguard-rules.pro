@@ -41,3 +41,7 @@
 # Don't obfuscate annotation classes — needed by Hilt/Compose tooling.
 -keep @interface androidx.compose.runtime.Composable
 -keep class kotlin.Metadata { *; }
+
+# Bouncy Castle (vérification Ed25519 des licences, API légère) : classes JCA/JNDI optionnelles absentes sur Android.
+-dontwarn org.bouncycastle.**
+-dontwarn javax.naming.**

@@ -33,7 +33,10 @@ import java.util.concurrent.TimeUnit
 object UpdateChecker {
 
     private const val TAG = "update"
-    private const val REPO = "khalilbenaz/ultra-tv"
+    // Édition Pro : dépôt de distribution séparé et fichiers « UltraTVPro-… » (jamais l'APK public).
+    private val PRO = com.ultratv.tv.nativeapp.BuildConfig.EDITION == "pro"
+    private val REPO = if (PRO) "khalilbenaz/ultra-tv-pro" else "khalilbenaz/ultra-tv"
+    private val PREFIX = if (PRO) "UltraTVPro" else "UltraTV"
     private const val APK_NAME = "UltraTV-debug.apk"
 
     data class UpdateInfo(
@@ -100,7 +103,7 @@ object UpdateChecker {
                     }
                 }
                 // APK adapté au processeur (plus léger) s'il est publié, sinon l'universel historique.
-                val choice = UpdateAssets.choose(assets, verName, Build.SUPPORTED_ABIS.toList())
+                val choice = UpdateAssets.choose(assets, verName, Build.SUPPORTED_ABIS.toList(), PREFIX)
                 if (choice == null || choice.apkUrl.isBlank()) {
                     RemoteLog.warn(TAG, "no installable APK asset on $tag")
                     return@use null

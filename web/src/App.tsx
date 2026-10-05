@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { LicenseGate } from "@/license/Gate";
 import { HashRouter, Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { dirOf, useT } from "@/i18n";
 import { initTransport, bridge } from "@/net/transport";
@@ -161,7 +162,7 @@ export function App() {
     <ErrorBoundary>
       <HashRouter>
         <Effects />
-        <Shell />
+        <LicenseGate><Shell /></LicenseGate>
         <PlayerHost />
       </HashRouter>
     </ErrorBoundary>

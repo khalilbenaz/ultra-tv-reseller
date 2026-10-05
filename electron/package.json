@@ -19,7 +19,10 @@
     "icons": "node scripts/make-icons.mjs",
     "package:mac": "npm run prepare:web && electron-builder --mac dmg zip --universal --publish never",
     "package:win": "npm run prepare:web && electron-builder --win nsis --x64 --publish never",
-    "package:linux": "npm run prepare:web && electron-builder --linux AppImage --x64 --publish never"
+    "package:linux": "npm run prepare:web && electron-builder --linux AppImage --x64 --publish never",
+    "package:pro:mac": "npm run prepare:web && electron-builder -c electron-builder.pro.cjs --mac dmg zip --universal --publish never",
+    "package:pro:win": "npm run prepare:web && electron-builder -c electron-builder.pro.cjs --win nsis --x64 --publish never",
+    "package:pro:linux": "npm run prepare:web && electron-builder -c electron-builder.pro.cjs --linux AppImage --x64 --publish never"
   },
   "dependencies": {
     "electron-updater": "^6.8.9"

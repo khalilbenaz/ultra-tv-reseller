@@ -229,6 +229,7 @@ function downloadPage() {
     { label: "Android (older boxes, armeabi-v7a)", url: `${rel}/UltraTVPro-armeabi-v7a.apk` },
     { label: "Windows", url: `${rel}/UltraTVPro-win-x64.exe` },
     { label: "macOS", url: `${rel}/UltraTVPro-mac-universal.dmg` },
+    { label: "Linux (AppImage)", url: `${rel}/UltraTVPro-linux-x86_64.AppImage` },
   ];
   const n = nonce();
   return html(V.downloadPage(n, links), n, 200, { "cache-control": "public, max-age=300" });

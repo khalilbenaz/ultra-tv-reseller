@@ -319,6 +319,8 @@ private fun Root(vm: AppViewModel = hiltViewModel()) {
             val showOnboarding by onboarding.show.collectAsState()
             val profileGate: com.ultratv.tv.nativeapp.ui.profile.ProfileGateViewModel = hiltViewModel()
             val askProfile by profileGate.needsSelection.collectAsState()
+            // Édition Pro : licence (essai / activation par le revendeur) avant tout le reste. Sans effet en édition standard.
+            com.ultratv.tv.nativeapp.ui.license.LicenseGate {
             when {
                 askProfile == null -> Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background))
                 askProfile == true && showOnboarding == false -> com.ultratv.tv.nativeapp.ui.profile.WhoIsWatchingScreen()
@@ -357,6 +359,7 @@ private fun Root(vm: AppViewModel = hiltViewModel()) {
                     }
                 }
                 }
+            }
             }
         }
         }

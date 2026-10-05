@@ -44,6 +44,14 @@ val ultraWorkerUrl = resolveBuildConfigValue(
     resolveBuildConfigValue("ULTRA_LOG_URL", "https://ultratv-config.khalilbenaz.workers.dev"),
 )
 
+// Édition : « standard » (app publique gratuite) ou « pro » (variante revendeur avec licence : -PULTRA_EDITION=pro).
+// L'édition Pro a son propre identifiant (s'installe à côté de l'app publique), son nom et son serveur de licences.
+val ultraEdition = resolveBuildConfigValue("ULTRA_EDITION", "standard")
+val isPro = ultraEdition == "pro"
+val licenseUrl = resolveBuildConfigValue("ULTRA_LICENSE_URL", "https://ultratv-reseller.khalilbenaz.workers.dev")
+// Clé publique Ed25519 (SPKI, base64) qui vérifie les statuts signés par le Worker revendeur.
+val licensePubKey = "MCowBQYDK2VwAyEAct7h7rfzeaA4nLuL2k0R14nTdc/IrzxStqx8+jdnF4M="
+
 android {
     namespace = "com.ultratv.tv.nativeapp"
     compileSdk = 35
@@ -51,7 +59,7 @@ android {
     defaultConfig {
         // Different applicationId during development so it can be installed
         // alongside the existing Capacitor build (com.ultratv.tv).
-        applicationId = "com.ultratv.tv.nativeapp"
+        applicationId = if (isPro) "com.ultratv.pro" else "com.ultratv.tv.nativeapp"
         minSdk = 28
         targetSdk = 35
         versionCode = appVersionCode
@@ -60,6 +68,10 @@ android {
 
         // URL par défaut du Worker — voir resolveBuildConfigValue() ci-dessus.
         buildConfigField("String", "WORKER_URL", "\"$ultraWorkerUrl\"")
+        buildConfigField("String", "EDITION", "\"$ultraEdition\"")
+        buildConfigField("String", "LICENSE_URL", "\"$licenseUrl\"")
+        buildConfigField("String", "LICENSE_PUBKEY", "\"$licensePubKey\"")
+        manifestPlaceholders["appLabel"] = if (isPro) "Ultra TV Pro" else "@string/app_name"
     }
 
     // Release signing — reads ULTRA_KEYSTORE / ULTRA_KEYSTORE_PASSWORD /
@@ -112,7 +124,8 @@ android {
             // from the new key with an added lineage — it needs the old
             // (debug) key as the starting point.
             signingConfig = signingConfigs.getByName("debug")
-            applicationIdSuffix = ".debug"
+            // Pro : identifiant propre sans suffixe, signé en CI avec la clé de l'édition Pro.
+            applicationIdSuffix = if (isPro) "" else ".debug"
         }
     }
 
@@ -212,6 +225,8 @@ dependencies {
     implementation("androidx.documentfile:documentfile:1.0.1")
     // QR code du tableau de bord cloud, généré localement (aucun réseau).
     implementation("com.google.zxing:core:3.5.3")
+    // Vérification Ed25519 des statuts de licence (édition Pro) : API légère seulement, Android < 13 n'a pas Ed25519.
+    implementation("org.bouncycastle:bcprov-jdk18on:1.78.1")
     implementation(libs.mediarouter)
     implementation(libs.play.cast.framework)
 
