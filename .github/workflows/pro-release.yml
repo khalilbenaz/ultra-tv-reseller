@@ -130,3 +130,28 @@ jobs:
             electron/release/*.blockmap
             electron/release/latest*.yml
           retention-days: 14
+
+  # Release dans CE dépôt privé (tag pro-vX.Y.Z), avec tous les fichiers. La distribution aux clients reste le dépôt
+  # public khalilbenaz/ultra-tv-pro (scripts/publish-pro.sh) : les releases d'un dépôt privé ne sont pas téléchargeables par eux.
+  private-release:
+    name: Release privée
+    if: github.repository == 'khalilbenaz/ultra-tv-reseller' && startsWith(github.ref, 'refs/tags/pro-v')
+    needs: [android, desktop]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Créer la release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          cd dist && ls -la
+          V="${GITHUB_REF_NAME#pro-v}"
+          gh release delete "$GITHUB_REF_NAME" -R "$GITHUB_REPOSITORY" -y 2>/dev/null || true
+          gh release create "$GITHUB_REF_NAME" -R "$GITHUB_REPOSITORY" --title "Ultra TV Pro $V" \
+            --notes "Ultra TV Pro $V (édition revendeur). Distribution aux clients : https://github.com/khalilbenaz/ultra-tv-pro/releases/tag/v$V" ./*
