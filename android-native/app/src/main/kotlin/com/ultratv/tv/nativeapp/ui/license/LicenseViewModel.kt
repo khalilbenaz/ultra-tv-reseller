@@ -23,7 +23,10 @@ sealed interface LicenseUi {
 }
 
 @HiltViewModel
-class LicenseViewModel @Inject constructor(private val client: LicenseClient) : ViewModel() {
+class LicenseViewModel @Inject constructor(
+    private val client: LicenseClient,
+    private val provisioner: com.ultratv.tv.nativeapp.data.license.ResellerProvisioner,
+) : ViewModel() {
     private val _state = MutableStateFlow<LicenseUi>(if (client.enabled) LicenseUi.Loading else LicenseUi.Free)
     val state: StateFlow<LicenseUi> = _state
 
@@ -41,7 +44,8 @@ class LicenseViewModel @Inject constructor(private val client: LicenseClient) : 
             viewModelScope.launch {
                 while (true) {
                     check()
-                    delay(6 * 3600_000L)
+                    // Toutes les 15 min : un abonnement configuré par le revendeur arrive vite sur l'appareil.
+                    delay(15 * 60_000L)
                 }
             }
         }
@@ -54,6 +58,8 @@ class LicenseViewModel @Inject constructor(private val client: LicenseClient) : 
             try {
                 val p = client.refresh()
                 apply(p, offline = false)
+                // Licence active : abonnement IPTV configuré par le revendeur (ajout / mise à jour / retrait).
+                if (p.status == "active") client.sources()?.let { runCatching { provisioner.apply(it) } }
                 if (p.unread > 0) _unread.value = client.inbox().filter { !it.read }.sortedBy { it.at }
             } catch (_: Exception) {
                 val cached = client.cached()

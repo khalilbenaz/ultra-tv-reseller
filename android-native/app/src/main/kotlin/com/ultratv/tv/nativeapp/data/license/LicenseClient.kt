@@ -86,6 +86,22 @@ class LicenseClient @Inject constructor(@ApplicationContext private val ctx: Con
         }
     }
 
+    /** Abonnement IPTV configuré par le revendeur (vide si aucun ou licence inactive) ; null si injoignable. */
+    suspend fun sources(): List<ResellerSource>? = withContext(Dispatchers.IO) {
+        val sec = secret() ?: return@withContext null
+        val req = Request.Builder().url("$base/api/lic/sources").header("Authorization", "Bearer $sec").build()
+        runCatching {
+            http.newCall(req).execute().use { r ->
+                if (!r.isSuccessful) return@use null
+                val a = JSONObject(r.body!!.string()).optJSONArray("sources") ?: JSONArray()
+                (0 until a.length()).map { i -> a.getJSONObject(i) }.map { o ->
+                    fun s(k: String) = if (o.isNull(k) || !o.has(k)) null else o.optString(k)
+                    ResellerSource(o.getString("id"), o.optString("kind", "xtream"), o.optString("name", "IPTV"), o.optLong("updatedAt"), s("server"), s("username"), s("password"), s("url"))
+                }
+            }
+        }.getOrNull()
+    }
+
     suspend fun inbox(): List<Announcement> = withContext(Dispatchers.IO) {
         val sec = secret() ?: return@withContext emptyList()
         val req = Request.Builder().url("$base/api/lic/inbox").header("Authorization", "Bearer $sec").build()

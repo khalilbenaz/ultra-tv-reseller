@@ -97,6 +97,20 @@ Exception : décision d'un tribunal ou d'une autorité compétente (contrat §6)
 - Le distributeur voit pour chaque sous-revendeur : solde, clients, activations des 30 derniers jours, dernière activation ;
   il ne voit pas le détail de leurs clients.
 
+### Abonnement IPTV configuré par le revendeur
+
+- Le revendeur saisit le **code affiché sur l'écran du client** (ou ouvre la fiche du client) puis l'abonnement :
+  **Xtream Codes** (serveur, identifiant, mot de passe) ou **lien M3U**. Un abonnement par client, valable pour tous ses appareils.
+- L'appareil doit d'abord être **activé** par ce revendeur ; un revendeur ne peut configurer que **ses** clients.
+- L'application Pro récupère l'abonnement au démarrage puis **toutes les 15 minutes** : la source est ajoutée et
+  synchronisée sans rien saisir sur la TV, mise à jour si le revendeur la modifie, retirée s'il la supprime.
+  Les sources ajoutées par le client lui-même ne sont jamais touchées.
+- Identifiants **chiffrés au repos** (AES-256-GCM, secret `PROVIDER_ENC_KEY`, lié au client) ; le mot de passe n'est
+  jamais réaffiché dans le panneau (laisser vide = inchangé) ; envoyés en clair uniquement aux appareils de ce client,
+  et **seulement si sa licence est active** (rien en essai ni si le client est suspendu).
+- Rappel juridique : ce sont les identifiants d'abonnement du revendeur ; le contrat (§3) le rend seul responsable du
+  contenu correspondant.
+
 ### Annonces
 
 - Cibles : **tous mes clients**, **un client**, ou (distributeur) **tout mon réseau**.
@@ -225,6 +239,7 @@ Statuts : `trial`, `active`, `expired`, `suspended`. Détails : [`reseller-worke
 |---|---|---|
 | `LICENSE_SIGNING_KEY` | secret Wrangler (`ultratv-reseller`) | Signe les statuts de licence (Ed25519) |
 | `SESSION_SECRET` | secret Wrangler | Sessions du panneau |
+| `PROVIDER_ENC_KEY` | secret Wrangler (copie : `~/.config/ultra-tv-pro/source-enc-key.b64`) | Chiffre les abonnements IPTV saisis par les revendeurs |
 | `PRO_KEYSTORE_BASE64`, `PRO_KEYSTORE_PASSWORD`, `PRO_KEY_ALIAS` | secrets GitHub de ce dépôt | Signature des APK Pro |
 | Copies locales | `~/.config/ultra-tv-pro/` (jamais dans le dépôt) | Clé de signature, keystore Android Pro, mot de passe admin initial |
 
@@ -252,13 +267,13 @@ pour ne jamais l'ajouter par erreur au dépôt public.
   `pro-v*` ailleurs que vers ce dépôt privé.
 - Actions GitHub : seul **Pro release** est utile ici ; les workflows publics ne se déclenchent que sur `main`.
 - **Juridique** (voir [PLAN.md §4](docs/reseller/PLAN.md)) : contrat revendeur accepté avant activation, aucun contenu ni
-  liste préchargée, pas de sources poussées par le revendeur, facturation de licences logicielles uniquement, suspension en
+  liste préchargée dans l'application, abonnements IPTV saisis par le revendeur sous sa responsabilité (chiffrés), facturation de licences logicielles uniquement, suspension en
   un clic, données personnelles minimales. Le texte du contrat (page `/agreement`) est à faire relire par un juriste.
 
 ## Développement
 
 ```bash
-cd reseller-worker && npm ci && npm test          # Worker : 58 tests (D1 et Durable Object simulés)
+cd reseller-worker && npm ci && npm test          # Worker : 65 tests (D1 et Durable Object simulés)
 cd web && npm ci && npm test                      # bureau / web (dont logique de licence)
 cd web && VITE_EDITION=pro npm run build          # web en édition Pro
 cd electron && npm ci && npm test && npm run package:pro:win   # installateur Windows Pro local

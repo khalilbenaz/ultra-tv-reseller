@@ -6,7 +6,8 @@ import { create } from "zustand";
 import { IS_PRO } from "@/edition";
 import { bridge } from "@/net/transport";
 import { usePrefs } from "@/state/prefs";
-import { cachedLicense, deviceCode, fetchInbox, markAnnouncementsRead, refreshLicense, type Announcement } from "./client";
+import { cachedLicense, deviceCode, fetchInbox, fetchResellerSources, markAnnouncementsRead, refreshLicense, type Announcement } from "./client";
+import { applyResellerSources } from "./provision";
 import { daysLeft, licenseAllows, supportLink, type LicensePayload } from "./logic";
 
 type State =
@@ -27,6 +28,11 @@ export async function checkLicense() {
   try {
     const p = await refreshLicense(b ? `desktop-${b.platform}` : "web", b?.version ?? "web");
     apply(p, false);
+    // Licence active : abonnement IPTV configuré par le revendeur (ajout / mise à jour / retrait de la source).
+    if (p.status === "active") {
+      const remote = await fetchResellerSources();
+      if (remote) await applyResellerSources(remote).catch(() => undefined);
+    }
     if (p.unread > 0) useLicense.setState({ unread: (await fetchInbox()).filter((m) => !m.read).sort((x, y) => x.at - y.at) });
   } catch {
     const cached = await cachedLicense();
@@ -44,7 +50,8 @@ function start() {
   document.title = "Ultra TV Pro";
   void cachedLicense().then((c) => { if (c && useLicense.getState().state.kind === "loading") apply(c, true); });
   void checkLicense();
-  setInterval(() => void checkLicense(), 6 * 3600_000);
+  // Toutes les 15 min : un abonnement configuré par le revendeur arrive vite sur l'appareil.
+  setInterval(() => void checkLicense(), 15 * 60_000);
 }
 
 const STR = {

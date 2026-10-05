@@ -39,6 +39,9 @@ export interface Source {
   cloudShared?: "all" | number;
   /** Nom de l'appareil d'origine (tableau de bord ou autre appareil). */
   cloudOriginName?: string;
+  /** Édition Pro : abonnement configuré par le revendeur (identifiant et date de la version appliquée). */
+  resellerSourceId?: string;
+  resellerUpdatedAt?: number;
   /** "ready" une fois la première synchro terminée. */
   state: "new" | "syncing" | "ready" | "error";
   error?: string;

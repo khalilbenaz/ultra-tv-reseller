@@ -6,6 +6,7 @@ import { bridge } from "@/net/transport";
 import { decryptSecret, encryptSecret } from "@/net/secrets";
 import { LICENSE_PUBKEY, LICENSE_URL } from "@/edition";
 import { verifyLicense, type LicensePayload } from "./logic";
+import type { ResellerSource } from "./provision";
 
 interface Res { status: number; text: string }
 type Http = (req: { url: string; method?: string; headers?: Record<string, string>; body?: string }) => Promise<Res>;
@@ -65,6 +66,16 @@ export async function refreshLicense(platform: string, appVersion: string): Prom
   if (!p) throw new Error("bad-signature");
   await Promise.all([setSetting(K.payload, payload), setSetting(K.sig, sig), setSetting(K.code, p.code)]);
   return p;
+}
+
+/** Abonnement IPTV configuré par le revendeur pour ce client (vide si aucun ou licence inactive). null si injoignable. */
+export async function fetchResellerSources(): Promise<ResellerSource[] | null> {
+  const sec = await secret();
+  if (!sec) return null;
+  try {
+    const r = await http({ url: `${LICENSE_URL}/api/lic/sources`, headers: { authorization: `Bearer ${sec}`, accept: "application/json" } });
+    return r.status === 200 ? (JSON.parse(r.text) as { sources: ResellerSource[] }).sources : null;
+  } catch { return null; }
 }
 
 export async function fetchInbox(): Promise<Announcement[]> {
