@@ -24,7 +24,8 @@ export function setLicenseHttp(h: Http | null) { http = h ?? defaultHttp; }
 const K = { secret: "lic.secret", code: "lic.code", payload: "lic.payload", sig: "lic.sig" };
 const JSON_H = { "content-type": "application/json", accept: "application/json" };
 
-export interface Announcement { id: string; title: string; body: string; at: number; read: boolean }
+/** Annonce du revendeur, ou rappel automatique (`kind = "renewal"` : texte traduit par l'app à partir de `until`). */
+export interface Announcement { id: string; title: string; body: string; at: number; kind?: string; until?: number | null; read: boolean }
 
 async function secret(): Promise<string | null> {
   const enc = await getSetting<string>(K.secret, "");

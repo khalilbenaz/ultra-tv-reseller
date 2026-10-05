@@ -15,10 +15,31 @@ type State =
   | { kind: "allowed"; p: LicensePayload }
   | { kind: "blocked"; p: LicensePayload | null; code: string; offline: boolean };
 
-export const useLicense = create<{ state: State; checking: boolean; unread: Announcement[] }>(() => ({ state: { kind: "loading" }, checking: false, unread: [] }));
+/** `unread` : file des annonces à présenter au démarrage ; `inboxCount` : non lus (pastille du menu Abonnement). */
+export const useLicense = create<{ state: State; checking: boolean; unread: Announcement[]; inboxCount: number }>(() => ({ state: { kind: "loading" }, checking: false, unread: [], inboxCount: 0 }));
 
 function apply(p: LicensePayload, offline: boolean) {
-  useLicense.setState({ state: licenseAllows(p) ? { kind: "allowed", p } : { kind: "blocked", p, code: p.code, offline } });
+  useLicense.setState({ state: licenseAllows(p) ? { kind: "allowed", p } : { kind: "blocked", p, code: p.code, offline }, inboxCount: p.unread ?? 0 });
+}
+
+const RENEW = {
+  en: { title: "Your Ultra TV Pro license expires soon", body: (d: string, w: string) => `Your license expires on ${d}. Contact ${w} to renew it.`, who: "your provider" },
+  fr: { title: "Votre licence Ultra TV Pro expire bientôt", body: (d: string, w: string) => `Votre licence expire le ${d}. Contactez ${w} pour la renouveler.`, who: "votre fournisseur" },
+  ar: { title: "ترخيص Ultra TV Pro ينتهي قريبًا", body: (d: string, w: string) => `ينتهي ترخيصك في ${d}. تواصل مع ${w} لتجديده.`, who: "مزوّدك" },
+};
+
+/** Titre et texte affichés : traduits pour un rappel automatique, tels quels pour une annonce du revendeur. */
+export function announcementText(a: Announcement, from: string | null, lang: string): { title: string; body: string } {
+  if (a.kind !== "renewal" || !a.until) return { title: a.title, body: a.body };
+  const r = lang === "fr" ? RENEW.fr : lang === "ar" ? RENEW.ar : RENEW.en;
+  const d = new Date(a.until).toLocaleDateString(lang, { day: "numeric", month: "long", year: "numeric" });
+  return { title: r.title, body: r.body(d, from ?? r.who) };
+}
+
+/** Message lu (fenêtre de démarrage ou boîte de réception) : serveur et pastille. */
+export function noteRead(a: Announcement) {
+  useLicense.setState((s) => ({ unread: s.unread.filter((m) => m.id !== a.id), inboxCount: Math.max(0, s.inboxCount - (a.read ? 0 : 1)) }));
+  void markAnnouncementsRead([a.id]);
 }
 
 export async function checkLicense() {
@@ -126,16 +147,15 @@ function Banner({ p }: { p: LicensePayload }) {
 
 function AnnouncementModal({ a, from }: { a: Announcement; from: string | null }) {
   const t = useStr();
-  const dismiss = useCallback(() => {
-    useLicense.setState((s) => ({ unread: s.unread.filter((m) => m.id !== a.id) }));
-    void markAnnouncementsRead([a.id]);
-  }, [a.id]);
+  const lang = usePrefs((s) => s.lang);
+  const txt = announcementText(a, from, lang);
+  const dismiss = useCallback(() => noteRead(a), [a]);
   return (
     <div className="scrim">
-      <div className="modal lic-msg" role="dialog" aria-label={a.title}>
+      <div className="modal lic-msg" role="dialog" aria-label={txt.title}>
         <div className="muted">{t.from(from ?? t.provider)}</div>
-        <h3>{a.title}</h3>
-        <p className="lic-body">{a.body}</p>
+        <h3>{txt.title}</h3>
+        <p className="lic-body">{txt.body}</p>
         <button className="btn primary" autoFocus onClick={dismiss}>{t.ok}</button>
       </div>
     </div>

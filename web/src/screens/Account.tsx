@@ -1,7 +1,7 @@
 // « Abonnement » : informations du compte IPTV de la source active (statut, expiration, connexions), lues en direct.
 
 import { IS_PRO } from "@/edition";
-import { ProLicenseCard } from "@/license/ProLicenseCard";
+import { ProInboxCard, ProLicenseCard } from "@/license/ProLicenseCard";
 import { useEffect, useState, type ReactNode } from "react";
 import { handshake, type XtreamHandshake } from "@/net/xtream";
 import { currentTransport } from "@/net/transport";
@@ -102,7 +102,7 @@ export function Account() {
   return (
     <div className="page">
       <div className="page-head"><div><h1>{t.title}</h1><div className="sub">{t.sub}</div></div></div>
-      <div className="acc-grid">{IS_PRO && <ProLicenseCard />}<IptvAccountCard /></div>
+      <div className="acc-grid">{IS_PRO && <ProLicenseCard />}<IptvAccountCard />{IS_PRO && <ProInboxCard />}</div>
     </div>
   );
 }

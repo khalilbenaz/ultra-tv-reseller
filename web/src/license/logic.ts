@@ -11,6 +11,8 @@ export interface LicensePayload {
   reseller: { name: string; whatsapp: string | null; telegram: string | null; text: string | null } | null;
   unread: number;
   issuedAt: number;
+  /** Appareils rattachés à la licence / nombre autorisé (absent : pas encore de licence). */
+  devices?: { used: number; max: number } | null;
 }
 
 const b64uBytes = (s: string) => Uint8Array.from(atob(s.replace(/-/g, "+").replace(/_/g, "/") + "=".repeat((4 - (s.length % 4)) % 4)), (c) => c.charCodeAt(0));

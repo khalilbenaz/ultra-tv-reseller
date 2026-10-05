@@ -4,6 +4,7 @@ import { useT, type Key } from "@/i18n";
 import { usePrefs } from "@/state/prefs";
 import { useSync } from "@/state/sync";
 import { AppMark, Icon, type IconName } from "./Icon";
+import { useLicense } from "@/license/Gate";
 
 const ITEMS: { to: string; icon: IconName; label: Key; match: string }[] = [
   { to: "/", icon: "home", label: "nav.home", match: "/" },
@@ -22,6 +23,7 @@ export function Rail() {
   const nav = useNavigate();
   const { profiles, profileId } = usePrefs();
   const syncing = useSync((s) => s.running);
+  const inbox = useLicense((s) => s.inboxCount);
   const me = profiles.find((p) => p.id === profileId) ?? profiles[0]!;
   const isActive = (m: string) => (m === "/" ? loc.pathname === "/" : loc.pathname.startsWith(m));
   return (
@@ -33,7 +35,7 @@ export function Rail() {
       <nav aria-label={t("a11y.mainNav")}>
         {ITEMS.map((i) => (
           <NavLink key={i.to} to={i.to} className={`rail-item${isActive(i.match) ? " active" : ""}`} title={t(i.label)}>
-            <span className="pill"><Icon name={i.icon} /></span>
+            <span className="pill"><Icon name={i.icon} />{IS_PRO && i.to === "/account" && inbox > 0 && <span className="rail-badge" aria-label={String(inbox)} />}</span>
             {t(i.label)}
           </NavLink>
         ))}
