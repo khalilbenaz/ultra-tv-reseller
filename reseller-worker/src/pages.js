@@ -55,6 +55,15 @@ function page(n, title, body, { me = null, nav = "", flash = null } = {}) {
 
 const csrf = (me) => `<input type="hidden" name="csrf" value="${esc(me.csrf)}">`;
 
+function iptvFields(cur) {
+  return `<label>Type<select name="kind"><option value="xtream"${cur?.kind === "m3u" ? "" : " selected"}>Xtream Codes</option><option value="m3u"${cur?.kind === "m3u" ? " selected" : ""}>M3U link</option></select></label>
+  <label>Name shown in the app<input name="name" maxlength="60" value="${esc(cur?.name || "")}" placeholder="My TV"></label>
+  <label>Server (Xtream)<input name="server" maxlength="300" value="${esc(cur?.server || "")}" placeholder="http://line.example.com:8080" autocomplete="off"></label>
+  <label>Username (Xtream)<input name="username" maxlength="128" value="${esc(cur?.username || "")}" autocomplete="off"></label>
+  <label>Password (Xtream)<input name="password" type="password" maxlength="128" placeholder="${cur?.kind === "xtream" ? "unchanged if empty" : ""}" autocomplete="new-password"></label>
+  <label>M3U link<input name="url" maxlength="2000" placeholder="${cur?.kind === "m3u" ? "unchanged if empty" : "http://…/get.php?…"}" autocomplete="off"></label>`;
+}
+
 /** Libellés d'erreur du panneau (codes PanelError). */
 export const ERRORS = {
   invalid_code: "This device code is not valid. It looks like 7F3K-92QD.",
@@ -77,6 +86,10 @@ export const ERRORS = {
   not_distributor: "This feature is reserved for distributors.",
   has_subs: "Ce distributeur a des sous-revendeurs : impossible de le rétrograder.",
   trial_already_extended: "The free trial of this device has already been extended once.",
+  invalid_server: "Server address not valid (it must start with http:// or https://).",
+  invalid_m3u: "M3U link not valid (it must start with http:// or https://).",
+  missing_credentials: "Username and password are required for Xtream Codes.",
+  activate_first: "Activate this device first, then set up its IPTV subscription.",
 };
 
 export function loginPage(n, error) {
@@ -138,6 +151,9 @@ export function dashboardPage(n, me, { stats, customers, flash, agreementMissing
   <div class="card stat"><b>${stats.monthOps}</b><span>activations & renewals this month</span></div>
   <div class="card stat"><b>${stats.expiringSoon}</b><span>licenses expiring within 30 days</span></div></div>
   <h2>Activate a device</h2><p class="muted">The customer opens Ultra TV Pro: the device code is shown on screen.</p>${activateForm(me, customers)}
+  <h2>Set up a customer's IPTV subscription</h2><p class="muted">Type the code shown on the customer's screen: the app adds the subscription by itself (no typing on the TV). Applies to all devices of that customer.</p>
+  <form method="post" action="/iptv-by-code" class="card inline">${csrf(me)}
+  <label>Device code<input class="code" name="code" placeholder="XXXX-XXXX" maxlength="11" required autocomplete="off"></label>${iptvFields(null)}<button>Send to the device</button></form>
   <h2>More tools</h2><div class="grid">
   <form method="post" action="/activate-bulk" class="card" style="display:flex;flex-direction:column;gap:10px">${csrf(me)}
     <b>Bulk activation</b><span class="muted">One code per line (1 credit each, new customers).</span>
@@ -164,7 +180,7 @@ export function customersPage(n, me, { customers, q, flash }) {
   ${customerTable(customers)}`, { me, nav: "customers", flash });
 }
 
-export function customerPage(n, me, { detail, flash }) {
+export function customerPage(n, me, { detail, flash, iptv = null }) {
   const { customer: c, license: l, devices } = detail;
   const base = `/customers/${esc(c.id)}`;
   return page(n, c.label || "Customer", `<p><a href="/customers">← Customers</a></p><h1>${esc(c.label || "Customer")}</h1>
@@ -181,6 +197,9 @@ export function customerPage(n, me, { detail, flash }) {
   <td><form method="post" action="${base}/devices/${esc(d.id)}/detach">${csrf(me)}<button class="ghost">Detach</button></form></td></tr>`).join("")}</table>` : `<p class="muted">No device.</p>`}
   ${devices.length < (l?.max_devices ?? 2) ? `<h2>Add a device (free)</h2><form method="post" action="/activate" class="card inline">${csrf(me)}<input type="hidden" name="customer" value="${esc(c.id)}">
   <label>Device code<input class="code" name="code" placeholder="XXXX-XXXX" maxlength="11" required autocomplete="off"></label><button>Add device</button></form>` : ""}
+  <h2>IPTV subscription</h2>${iptv ? `<p class="muted">Current: <b>${esc(iptv.name)}</b> · ${iptv.kind === "m3u" ? "M3U link" : `Xtream · ${esc(iptv.server)} · ${esc(iptv.username)}`} · updated ${fmtDateTime(iptv.updatedAt)}. Devices pick up changes within minutes.</p>` : `<p class="muted">None yet. The customer's devices will add it automatically.</p>`}
+  <form method="post" action="${base}/iptv" class="card inline">${csrf(me)}${iptvFields(iptv)}<button>${iptv ? "Update" : "Send to the devices"}</button></form>
+  ${iptv ? `<form method="post" action="${base}/iptv/remove" style="margin-top:8px">${csrf(me)}<button class="ghost">Remove the subscription from the devices</button></form>` : ""}
   <h2>Label & note</h2><form method="post" action="${base}/label" class="card" style="display:flex;flex-direction:column;gap:10px">${csrf(me)}
   <label>Label<input name="label" value="${esc(c.label || "")}" maxlength="80"></label><label>Private note<textarea name="note" maxlength="500">${esc(c.note || "")}</textarea></label><button>Save</button></form>`,
   { me, nav: "customers", flash });

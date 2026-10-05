@@ -11,6 +11,8 @@ import { hashPassword, randomToken, timingSafeEqual, verifyPassword } from "./li
 import { loadDeviceContext, registerDevice, signPayload, statusPayload, touchDevice, unreadCount } from "./license.js";
 import * as P from "./panel.js";
 import * as V from "./pages.js";
+import { customerOfCode, getCustomerSource, removeCustomerSource, setCustomerSource, sourcesForDevice } from "./sources.js";
+import { computeStatus } from "./license.js";
 
 export { Guard };
 
@@ -59,6 +61,7 @@ async function route(req, env) {
   if (path === "/api/lic/status" && m === "GET") return licStatus(req, env, url);
   if (path === "/api/lic/inbox" && m === "GET") return licInbox(req, env);
   if (path === "/api/lic/inbox/read" && m === "POST") return licInboxRead(req, env);
+  if (path === "/api/lic/sources" && m === "GET") return licSources(req, env);
 
   if (path === "/health") return json({ ok: true });
   if (path === "/download" && m === "GET") return downloadPage();
@@ -126,6 +129,12 @@ async function resellerRoute(env, me, path, m, form, url) {
     if (!me.agreement_signed_at) return redirect("/agreement");
     return view(V.bulkResultPage, me, { results: await P.activateMany(db, me.id, form.get("codes"), me.login) });
   }
+  if (path === "/iptv-by-code" && m === "POST") {
+    return attempt("/", "IPTV subscription sent: the customer's devices will add it within minutes.", async () => {
+      const cid = await customerOfCode(db, me.id, form.get("code"));
+      await setCustomerSource(env, me.id, cid, Object.fromEntries(form), me.login);
+    });
+  }
   if (path === "/extend-trial" && m === "POST") return attempt("/", "Free trial extended by 7 days.", () => P.extendTrial(db, me.id, form.get("code")));
   if (path === "/export/customers.csv" && m === "GET") return csvResponse(await P.customersCsv(db, me.id), "customers.csv");
   if (path === "/export/ledger.csv" && m === "GET") return csvResponse(await P.ledgerCsv(db, me.id), "credit-history.csv");
@@ -134,18 +143,20 @@ async function resellerRoute(env, me, path, m, form, url) {
     const q = url.searchParams.get("q") || "";
     return view(V.customersPage, me, { customers: await P.listCustomers(db, me.id, q), q, flash });
   }
-  const cm = path.match(/^\/customers\/([0-9a-f-]{36})(?:\/(renew|suspend|resume|label)|\/devices\/([0-9a-f-]{36})\/detach)?$/);
+  const cm = path.match(/^\/customers\/([0-9a-f-]{36})(?:\/(renew|suspend|resume|label|iptv|iptv\/remove)|\/devices\/([0-9a-f-]{36})\/detach)?$/);
   if (cm) {
     const [, cid, action, did] = cm;
     const to = `/customers/${cid}`;
     if (m === "GET" && !action && !did) {
-      try { return view(V.customerPage, me, { detail: await P.customerDetail(db, me.id, cid), flash }); }
+      try { return view(V.customerPage, me, { detail: await P.customerDetail(db, me.id, cid), flash, iptv: await getCustomerSource(env, cid).catch(() => null) }); }
       catch (e) { if (e instanceof P.PanelError) return redirect("/customers"); throw e; }
     }
     if (m === "POST" && did) return attempt(to, "Device detached.", () => P.detachDevice(db, me.id, did));
     if (m === "POST" && action === "renew") return attempt(to, "License renewed for one year.", () => P.renew(db, me.id, cid, me.login));
     if (m === "POST" && action === "suspend") return attempt(to, "Customer suspended.", () => P.setCustomerSuspended(db, me.id, cid, true));
     if (m === "POST" && action === "resume") return attempt(to, "Customer resumed.", () => P.setCustomerSuspended(db, me.id, cid, false));
+    if (m === "POST" && action === "iptv") return attempt(to, "IPTV subscription saved: devices will update within minutes.", () => setCustomerSource(env, me.id, cid, Object.fromEntries(form), me.login));
+    if (m === "POST" && action === "iptv/remove") return attempt(to, "IPTV subscription removed.", () => removeCustomerSource(env, me.id, cid));
     if (m === "POST" && action === "label") return attempt(to, "Saved.", () => P.setCustomerLabel(db, me.id, cid, form.get("label"), form.get("note")));
   }
   if (path === "/messages") {
@@ -309,6 +320,14 @@ async function licStatus(req, env, url) {
   const signed = await signPayload(env, statusPayload(ctx, await unreadCount(env.RESELLER, ctx)));
   if (!signed) return json({ error: "server_misconfigured" }, 500);
   return json(signed, 200, { "cache-control": "no-store" });
+}
+
+/** Abonnement IPTV du client de l'appareil (vide si la licence n'est pas active). Jamais mis en cache. */
+async function licSources(req, env) {
+  const { ctx, error } = await deviceCtx(req, env, 240);
+  if (error) return error;
+  const allowed = computeStatus(ctx).status === "active";
+  return json({ sources: await sourcesForDevice(env, ctx, allowed) }, 200, { "cache-control": "no-store" });
 }
 
 async function licInbox(req, env) {
