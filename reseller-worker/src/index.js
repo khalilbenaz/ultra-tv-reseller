@@ -41,6 +41,8 @@ async function currentUser(req, env) {
   const r = await P.resellerByLogin(env.RESELLER, s.login);
   if (!r || (r.session_epoch ?? 0) !== s.epoch) return null;
   if (r.role !== "admin" && r.status !== "active") return null;
+  // Sous-revendeur d'un distributeur suspendu : plus d'accès au panneau.
+  if (r.parent_id && (await P.getReseller(env.RESELLER, r.parent_id))?.status !== "active") return null;
   return { ...r, csrf: await csrfToken(sessionSecret(env), s.sid) };
 }
 
@@ -118,6 +120,14 @@ async function resellerRoute(env, me, path, m, form, url) {
     return attempt(to, customerId ? "Device added." : "Device activated for one year.", () =>
       P.activate(db, me.id, { code: form.get("code"), customerId, label: form.get("label") }, me.login));
   }
+  if (path === "/activate-bulk" && m === "POST") {
+    if (!me.agreement_signed_at) return redirect("/agreement");
+    return view(V.bulkResultPage, me, { results: await P.activateMany(db, me.id, form.get("codes"), me.login) });
+  }
+  if (path === "/extend-trial" && m === "POST") return attempt("/", "Free trial extended by 7 days.", () => P.extendTrial(db, me.id, form.get("code")));
+  if (path === "/export/customers.csv" && m === "GET") return csvResponse(await P.customersCsv(db, me.id), "customers.csv");
+  if (path === "/export/ledger.csv" && m === "GET") return csvResponse(await P.ledgerCsv(db, me.id), "credit-history.csv");
+  if (me.is_distributor === 1 && path.startsWith("/network")) return networkRoute(env, me, path, m, form, url);
   if (path === "/customers" && m === "GET") {
     const q = url.searchParams.get("q") || "";
     return view(V.customersPage, me, { customers: await P.listCustomers(db, me.id, q), q, flash });
@@ -150,6 +160,43 @@ async function resellerRoute(env, me, path, m, form, url) {
   return json({ error: "not_found" }, 404);
 }
 
+function csvResponse(body, name) {
+  return new Response(body, { headers: { "content-type": "text/csv; charset=utf-8", "content-disposition": `attachment; filename="${name}"`, "cache-control": "no-store" } });
+}
+
+/** Réseau du distributeur : sous-revendeurs, transferts, reprises, suspension, mot de passe. */
+async function networkRoute(env, me, path, m, form, url) {
+  const db = env.RESELLER;
+  const flash = flashOf(url);
+  if (path === "/network") {
+    if (m === "POST") {
+      const password = tempPassword();
+      try {
+        await P.createSubReseller(db, me.id, { login: form.get("login"), name: form.get("name"), passwordHash: await hashPassword(password) });
+      } catch (e) { if (e instanceof P.PanelError) return back("/network", { e: e.code }); throw e; }
+      return view(V.networkPage, me, { stats: await P.networkStats(db, me.id), subs: await P.listSubResellers(db, me.id), created: { login: String(form.get("login")).trim().toLowerCase(), password } });
+    }
+    return view(V.networkPage, me, { stats: await P.networkStats(db, me.id), subs: await P.listSubResellers(db, me.id), flash });
+  }
+  const nm = path.match(/^\/network\/([0-9a-f-]{36})(?:\/(transfer|reclaim|status|reset-password))?$/);
+  if (!nm) return json({ error: "not_found" }, 404);
+  const [, sid, action] = nm;
+  let r;
+  try { r = await P.getSub(db, me.id, sid); } catch { return redirect("/network"); }
+  const to = `/network/${sid}`;
+  const show = async (extra = {}) => view(V.subResellerPage, me, { r: await P.getReseller(db, sid), bal: await P.balance(db, sid), myBal: await P.balance(db, me.id), entries: await P.ledger(db, sid), flash, ...extra });
+  if (m === "GET" && !action) return show();
+  if (m === "POST" && action === "transfer") return attempt(to, "Credits transferred.", () => P.transferCredits(db, me.id, sid, form.get("amount"), me.login));
+  if (m === "POST" && action === "reclaim") return attempt(to, "Credits taken back.", () => P.reclaimCredits(db, me.id, sid, form.get("amount"), me.login));
+  if (m === "POST" && action === "status") return attempt(to, "Status updated.", () => P.setSubStatus(db, me.id, sid, form.get("status")));
+  if (m === "POST" && action === "reset-password") {
+    const password = tempPassword();
+    await P.setPassword(db, r.id, await hashPassword(password), { mustChange: true });
+    return show({ password });
+  }
+  return json({ error: "not_found" }, 404);
+}
+
 async function adminRoute(env, me, path, m, form, url) {
   const db = env.RESELLER;
   const flash = flashOf(url);
@@ -160,11 +207,11 @@ async function adminRoute(env, me, path, m, form, url) {
   if (path === "/admin/resellers" && m === "POST") {
     const password = tempPassword();
     try {
-      await P.createReseller(db, { login: form.get("login"), name: form.get("name"), passwordHash: await hashPassword(password) });
+      await P.createReseller(db, { login: form.get("login"), name: form.get("name"), passwordHash: await hashPassword(password), isDistributor: form.get("distributor") === "1" });
     } catch (e) { if (e instanceof P.PanelError) return back("/admin", { e: e.code }); throw e; }
     return view(V.adminPage, me, { resellers: await P.listResellers(db), created: { login: String(form.get("login")).trim().toLowerCase(), password } });
   }
-  const am = path.match(/^\/admin\/resellers\/([0-9a-f-]{36})(?:\/(credits|status|reset-password))?$/);
+  const am = path.match(/^\/admin\/resellers\/([0-9a-f-]{36})(?:\/(credits|status|reset-password|distributor))?$/);
   if (am) {
     const [, rid, action] = am;
     const r = await P.getReseller(db, rid);
@@ -174,6 +221,7 @@ async function adminRoute(env, me, path, m, form, url) {
     if (m === "GET" && !action) return show();
     if (m === "POST" && action === "credits") return attempt(to, "Crédits enregistrés.", () => P.addCredits(db, rid, form.get("amount"), form.get("note"), me.login));
     if (m === "POST" && action === "status") return attempt(to, "Statut mis à jour.", () => P.setResellerStatus(db, rid, form.get("status")));
+    if (m === "POST" && action === "distributor") return attempt(to, "Statut distributeur mis à jour.", () => P.setDistributor(db, rid, form.get("on") === "1"));
     if (m === "POST" && action === "reset-password") {
       const password = tempPassword();
       await P.setPassword(db, rid, await hashPassword(password), { mustChange: true });

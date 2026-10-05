@@ -4,7 +4,7 @@
 // appareil libre, revendeur actif et contrat accepté) ; les instructions suivantes n'agissent que si cette
 // ligne existe (`EXISTS ... ref = ?`). Deux activations simultanées du même code : une seule passe.
 
-import { normalizeDeviceCode } from "./license.js";
+import { normalizeDeviceCode, VISIBLE_MESSAGES, visibleBinds } from "./license.js";
 import { sanitizeText } from "./lib/sanitize.js";
 
 export const YEAR_MS = 365 * 24 * 3600_000;
@@ -34,6 +34,7 @@ export async function resellerByLogin(db, login) {
 async function whyRefused(db, rid, deviceId) {
   const r = await getReseller(db, rid);
   if (!r || r.status !== "active") throw new PanelError("reseller_suspended");
+  if (r.parent_id && (await getReseller(db, r.parent_id))?.status !== "active") throw new PanelError("reseller_suspended");
   if (!r.agreement_signed_at) throw new PanelError("agreement_required");
   if (deviceId) {
     const d = await db.prepare(`SELECT customer_id FROM device WHERE id = ?`).bind(deviceId).first();
@@ -93,7 +94,7 @@ export async function activate(db, rid, { code, customerId = null, label = "" },
        SELECT ?1, -1, 'activation', ?2, ?3, ?4, ?5
         WHERE ${BAL.replace("?", "?1")} >= 1
           AND EXISTS (SELECT 1 FROM device WHERE id = ?6 AND customer_id IS NULL)
-          AND EXISTS (SELECT 1 FROM reseller WHERE id = ?1 AND status = 'active' AND agreement_signed_at IS NOT NULL)`,
+          AND EXISTS (SELECT 1 FROM reseller r0 WHERE r0.id = ?1 AND r0.status = 'active' AND r0.agreement_signed_at IS NOT NULL AND (r0.parent_id IS NULL OR EXISTS (SELECT 1 FROM reseller p0 WHERE p0.id = r0.parent_id AND p0.status = 'active')))`,
     ).bind(rid, lid, device.code, now, actor, device.id),
     db.prepare(`INSERT INTO customer (id, reseller_id, label, created_at) SELECT ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM credit_ledger WHERE ref = ?)`)
       .bind(cid, rid, lbl, now, lid),
@@ -117,7 +118,7 @@ export async function renew(db, rid, customerId, actor, now = Date.now()) {
       `INSERT INTO credit_ledger (reseller_id, delta, reason, ref, note, created_at, created_by)
        SELECT ?1, -1, 'renewal', ?2, ?3, ?4, ?5
         WHERE ${BAL.replace("?", "?1")} >= 1
-          AND EXISTS (SELECT 1 FROM reseller WHERE id = ?1 AND status = 'active' AND agreement_signed_at IS NOT NULL)`,
+          AND EXISTS (SELECT 1 FROM reseller r0 WHERE r0.id = ?1 AND r0.status = 'active' AND r0.agreement_signed_at IS NOT NULL AND (r0.parent_id IS NULL OR EXISTS (SELECT 1 FROM reseller p0 WHERE p0.id = r0.parent_id AND p0.status = 'active')))`,
     ).bind(rid, ref, lic.id, now, actor),
     db.prepare(`UPDATE license SET expires_at = MAX(expires_at, ?) + ? WHERE id = ? AND EXISTS (SELECT 1 FROM credit_ledger WHERE ref = ?)`)
       .bind(now, YEAR_MS, lic.id, ref),
@@ -188,7 +189,11 @@ export async function createMessage(db, rid, { target, title, body, days }, now 
   const t = text(title, 120), b = text(body, 2000);
   if (!t || !b) throw new PanelError("message_empty");
   let tgt = "all";
-  if (target && target !== "all") { await ownCustomer(db, rid, target); tgt = `customer:${target}`; }
+  if (target === "network") {
+    const d = await getReseller(db, rid);
+    if (d?.is_distributor !== 1) throw new PanelError("not_distributor");
+    tgt = "network";
+  } else if (target && target !== "all") { await ownCustomer(db, rid, target); tgt = `customer:${target}`; }
   const d = Number(days);
   const exp = Number.isFinite(d) && d > 0 ? now + Math.min(d, 365) * 24 * 3600_000 : null;
   const id = uuid();
@@ -220,9 +225,9 @@ export async function inboxFor(db, ctx, now = Date.now()) {
     `SELECT m.id, m.title, m.body, m.created_at AS at,
             EXISTS (SELECT 1 FROM message_read x WHERE x.message_id = m.id AND x.device_id = ?4) AS read
        FROM message m
-      WHERE m.reseller_id = ?1 AND (m.target = 'all' OR m.target = ?2) AND (m.expires_at IS NULL OR m.expires_at > ?3)
+      WHERE ${VISIBLE_MESSAGES}
       ORDER BY m.created_at DESC LIMIT 50`,
-  ).bind(ctx.reseller.id, `customer:${ctx.customer.id}`, now, ctx.device.id).all();
+  ).bind(...visibleBinds(ctx, now)).all();
   return results.map((m) => ({ ...m, read: !!m.read }));
 }
 
@@ -253,15 +258,15 @@ export async function acceptAgreement(db, rid, now = Date.now()) {
 
 // ---- administration ----
 
-export async function createReseller(db, { login, name, passwordHash, role = "reseller" }, now = Date.now()) {
+export async function createReseller(db, { login, name, passwordHash, role = "reseller", parentId = null, isDistributor = false }, now = Date.now()) {
   const l = String(login ?? "").trim().toLowerCase();
   if (!/^[a-z0-9][a-z0-9._-]{2,31}$/.test(l)) throw new PanelError("invalid_login");
   const n = text(name, 60);
   if (!n) throw new PanelError("name_required");
   const id = uuid();
   try {
-    await db.prepare(`INSERT INTO reseller (id, login, name, role, password_hash, must_change_password, created_at) VALUES (?, ?, ?, ?, ?, 1, ?)`)
-      .bind(id, l, n, role, passwordHash, now).run();
+    await db.prepare(`INSERT INTO reseller (id, login, name, role, password_hash, must_change_password, created_at, parent_id, is_distributor) VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?)`)
+      .bind(id, l, n, role, passwordHash, now, parentId, isDistributor ? 1 : 0).run();
   } catch (e) {
     if (/UNIQUE/i.test(String(e?.message))) throw new PanelError("login_taken");
     throw e;
@@ -271,7 +276,9 @@ export async function createReseller(db, { login, name, passwordHash, role = "re
 
 export async function listResellers(db) {
   const { results } = await db.prepare(
-    `SELECT r.id, r.login, r.name, r.status, r.role, r.agreement_signed_at, r.created_at,
+    `SELECT r.id, r.login, r.name, r.status, r.role, r.agreement_signed_at, r.created_at, r.is_distributor, r.parent_id,
+            (SELECT name FROM reseller WHERE id = r.parent_id) AS parent_name,
+            (SELECT COUNT(*) FROM reseller WHERE parent_id = r.id) AS subs,
             (SELECT COALESCE(SUM(delta), 0) FROM credit_ledger WHERE reseller_id = r.id) AS balance,
             (SELECT COUNT(*) FROM customer WHERE reseller_id = r.id) AS customers
        FROM reseller r ORDER BY r.created_at`,
@@ -304,4 +311,169 @@ export async function ledger(db, rid, limit = 200) {
 export async function setPassword(db, rid, passwordHash, { mustChange = false } = {}) {
   await db.prepare(`UPDATE reseller SET password_hash = ?, must_change_password = ?, session_epoch = session_epoch + 1 WHERE id = ?`)
     .bind(passwordHash, mustChange ? 1 : 0, rid).run();
+}
+
+// ---- Phase 2 : réseau de distribution ----
+// Deux niveaux : un distributeur (is_distributor = 1, sans parent) crée des sous-revendeurs (parent_id = distributeur).
+// Les crédits passent du distributeur au sous-revendeur par transfert (deux lignes du grand livre, même référence,
+// dans un seul lot : jamais de crédit créé ni perdu, jamais de solde négatif).
+
+/** Le revendeur est-il un distributeur actif pouvant gérer un réseau ? */
+async function distributor(db, did) {
+  const d = await getReseller(db, did);
+  if (!d || d.is_distributor !== 1 || d.parent_id) throw new PanelError("not_distributor");
+  if (d.status !== "active") throw new PanelError("reseller_suspended");
+  return d;
+}
+
+/** Sous-revendeur appartenant à ce distributeur. */
+export async function getSub(db, did, sid) {
+  const r = await db.prepare(`SELECT * FROM reseller WHERE id = ? AND parent_id = ? AND role = 'reseller'`).bind(sid, did).first();
+  if (!r) throw new PanelError("unknown_reseller");
+  return r;
+}
+
+export async function createSubReseller(db, did, { login, name, passwordHash }, now = Date.now()) {
+  await distributor(db, did);
+  return createReseller(db, { login, name, passwordHash, parentId: did }, now);
+}
+
+/** Sous-revendeurs avec solde, clients, opérations des 30 derniers jours et dernière activité. */
+export async function listSubResellers(db, did, now = Date.now()) {
+  const { results } = await db.prepare(
+    `SELECT r.id, r.login, r.name, r.status, r.agreement_signed_at, r.created_at,
+            (SELECT COALESCE(SUM(delta), 0) FROM credit_ledger WHERE reseller_id = r.id) AS balance,
+            (SELECT COUNT(*) FROM customer WHERE reseller_id = r.id) AS customers,
+            (SELECT COUNT(*) FROM credit_ledger WHERE reseller_id = r.id AND reason IN ('activation', 'renewal') AND created_at >= ?2) AS ops30,
+            (SELECT MAX(created_at) FROM credit_ledger WHERE reseller_id = r.id AND reason IN ('activation', 'renewal')) AS last_op
+       FROM reseller r WHERE r.parent_id = ?1 ORDER BY r.created_at`,
+  ).bind(did, now - 30 * 24 * 3600_000).all();
+  return results;
+}
+
+/** Totaux du réseau (distributeur + sous-revendeurs). */
+export async function networkStats(db, did, now = Date.now()) {
+  const subs = await listSubResellers(db, did, now);
+  const own = await dashboardStats(db, did, now);
+  return {
+    subs: subs.length,
+    activeSubs: subs.filter((x) => x.status === "active").length,
+    subCredits: subs.reduce((a, x) => a + x.balance, 0),
+    networkCustomers: own.customers + subs.reduce((a, x) => a + x.customers, 0),
+    networkOps30: subs.reduce((a, x) => a + x.ops30, 0),
+  };
+}
+
+async function moveCredits(db, fromId, toId, n, ref, actor, now) {
+  const res = await db.batch([
+    db.prepare(
+      `INSERT INTO credit_ledger (reseller_id, delta, reason, ref, note, created_at, created_by)
+       SELECT ?1, -?2, 'transfer', ?3, ?4, ?5, ?6 WHERE ${BAL.replace("?", "?1")} >= ?2`,
+    ).bind(fromId, n, ref, `to ${toId}`, now, actor),
+    db.prepare(
+      `INSERT INTO credit_ledger (reseller_id, delta, reason, ref, note, created_at, created_by)
+       SELECT ?1, ?2, 'transfer', ?3, ?4, ?5, ?6 WHERE EXISTS (SELECT 1 FROM credit_ledger WHERE ref = ?3 AND reseller_id = ?7)`,
+    ).bind(toId, n, ref, `from ${fromId}`, now, actor, fromId),
+  ]);
+  if (res[0].meta.changes !== 1) throw new PanelError("no_credit");
+}
+
+const amountOf = (amount) => {
+  const n = Math.trunc(Number(amount));
+  if (!Number.isFinite(n) || n < 1 || n > 100_000) throw new PanelError("invalid_amount");
+  return n;
+};
+
+/** Transfert de N crédits du distributeur vers un de ses sous-revendeurs. */
+export async function transferCredits(db, did, sid, amount, actor, now = Date.now()) {
+  const n = amountOf(amount);
+  await distributor(db, did);
+  await getSub(db, did, sid);
+  await moveCredits(db, did, sid, n, `transfer:${uuid()}`, actor, now);
+}
+
+/** Reprise de N crédits inutilisés d'un sous-revendeur vers son distributeur. */
+export async function reclaimCredits(db, did, sid, amount, actor, now = Date.now()) {
+  const n = amountOf(amount);
+  await distributor(db, did);
+  await getSub(db, did, sid);
+  await moveCredits(db, sid, did, n, `reclaim:${uuid()}`, actor, now);
+}
+
+/** Suspendre / réactiver un sous-revendeur (ses sessions sont coupées, ses clients suspendus). */
+export async function setSubStatus(db, did, sid, status) {
+  await distributor(db, did);
+  await getSub(db, did, sid);
+  await setResellerStatus(db, sid, status);
+}
+
+/** Administration : faire (ou défaire) d'un revendeur sans parent un distributeur. */
+export async function setDistributor(db, rid, on) {
+  const r = await getReseller(db, rid);
+  if (!r || r.role !== "reseller" || r.parent_id) throw new PanelError("unknown_reseller");
+  if (!on && (await db.prepare(`SELECT COUNT(*) AS n FROM reseller WHERE parent_id = ?`).bind(rid).first()).n > 0) throw new PanelError("has_subs");
+  await db.prepare(`UPDATE reseller SET is_distributor = ? WHERE id = ?`).bind(on ? 1 : 0, rid).run();
+}
+
+// ---- Outils commerciaux ----
+
+/** Activation en lot : codes séparés par lignes, virgules ou espaces. Résultat par code ; s'arrête quand les crédits manquent. */
+export async function activateMany(db, rid, raw, actor, now = Date.now()) {
+  const codes = [...new Set(String(raw ?? "").toUpperCase().split(/[\s,;]+/).map((c) => c.trim()).filter(Boolean))].slice(0, 200);
+  const out = [];
+  for (const [i, code] of codes.entries()) {
+    try {
+      await activate(db, rid, { code }, actor, now);
+      out.push({ code, ok: true });
+    } catch (e) {
+      if (!(e instanceof PanelError)) throw e;
+      out.push({ code, ok: false, error: e.code });
+      if (e.code === "no_credit" || e.code === "reseller_suspended" || e.code === "agreement_required") {
+        for (const c of codes.slice(i + 1)) out.push({ code: c, ok: false, error: e.code });
+        break;
+      }
+    }
+  }
+  return out;
+}
+
+export const TRIAL_EXTENSION_MS = 7 * 24 * 3600_000;
+
+/** Prolonge de 7 jours l'essai d'un appareil pas encore activé — une seule fois par appareil, gratuit. */
+export async function extendTrial(db, rid, code, now = Date.now()) {
+  const d = await deviceByCode(db, code);
+  if (d.customer_id) throw new PanelError("already_active");
+  const r = await getReseller(db, rid);
+  if (!r || r.status !== "active") throw new PanelError("reseller_suspended");
+  const res = await db.prepare(
+    `UPDATE device SET trial_ends_at = MAX(trial_ends_at, ?) + ?, trial_extended = 1 WHERE id = ? AND trial_extended = 0 AND customer_id IS NULL`,
+  ).bind(now, TRIAL_EXTENSION_MS, d.id).run();
+  if (res.meta.changes !== 1) throw new PanelError("trial_already_extended");
+  return { trialEndsAt: Math.max(d.trial_ends_at, now) + TRIAL_EXTENSION_MS };
+}
+
+/** Cellule CSV sûre : guillemets doublés, formules neutralisées (=, +, -, @ ouvriraient un calcul dans le tableur). */
+export function csvCell(v) {
+  let s = v == null ? "" : String(v);
+  if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
+  return /[",\n\r;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+const toCsv = (rows) => "﻿" + rows.map((r) => r.map(csvCell).join(",")).join("\r\n") + "\r\n";
+const isoDay = (ms) => (ms ? new Date(ms).toISOString().slice(0, 10) : "");
+
+export async function customersCsv(db, rid) {
+  const { results } = await db.prepare(
+    `SELECT c.id, c.label, c.created_at,
+            (SELECT MAX(expires_at) FROM license WHERE customer_id = c.id) AS expires_at,
+            (SELECT status FROM license WHERE customer_id = c.id ORDER BY expires_at DESC LIMIT 1) AS lic_status,
+            (SELECT GROUP_CONCAT(code, ' ') FROM device WHERE customer_id = c.id) AS codes
+       FROM customer c WHERE c.reseller_id = ? ORDER BY c.created_at`,
+  ).bind(rid).all();
+  return toCsv([["customer_id", "label", "created", "license_status", "expires", "device_codes"],
+    ...results.map((c) => [c.id, c.label, isoDay(c.created_at), c.lic_status, isoDay(c.expires_at), c.codes])]);
+}
+
+export async function ledgerCsv(db, rid) {
+  const { results } = await db.prepare(`SELECT * FROM credit_ledger WHERE reseller_id = ? ORDER BY id`).bind(rid).all();
+  return toCsv([["date", "delta", "reason", "note", "by"], ...results.map((e) => [new Date(e.created_at).toISOString(), e.delta, e.reason, e.note, e.created_by])]);
 }

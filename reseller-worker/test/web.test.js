@@ -1,7 +1,7 @@
 import { env, exports } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
 import { hashPassword } from "../src/lib/crypto.js";
-import { createReseller, setPassword, getReseller } from "../src/panel.js";
+import { balance, createReseller, setPassword, getReseller } from "../src/panel.js";
 
 const ORIGIN = "https://reseller.test";
 let ipN = 0;
@@ -172,5 +172,53 @@ describe("administration", () => {
   it("page de téléchargement publique", async () => {
     const html = await (await req("/download")).text();
     expect(html).toContain("UltraTVPro-arm64-v8a.apk");
+  });
+});
+
+describe("phase 2 : distributeur via le panneau", () => {
+  it("admin crée un distributeur → il crée un sous-revendeur, lui transfère des crédits, le suspend", async () => {
+    const admin = await account("admin");
+    let csrf = await csrfOf(admin.cookie);
+    const login = `dist${Date.now() % 100000}`;
+    const html = await (await req("/admin/resellers", { method: "POST", cookie: admin.cookie, form: { csrf, login, name: "Basil Dist", distributor: "1" } })).text();
+    const pwd = html.match(/class="secret">([^<]+)</)[1];
+    const d = await getReseller(env.RESELLER, (await env.RESELLER.prepare("SELECT id FROM reseller WHERE login = ?").bind(login).first()).id);
+    expect(d.is_distributor).toBe(1);
+    await env.RESELLER.prepare(`INSERT INTO credit_ledger (reseller_id, delta, reason, created_at, created_by) VALUES (?, 10, 'purchase', ?, 'test')`).bind(d.id, Date.now()).run();
+    // Le distributeur change son mot de passe puis voit le menu Network.
+    let cookie = cookieOf(await req("/login", { method: "POST", form: { login, password: pwd } }));
+    csrf = await csrfOf(cookie, "/password");
+    cookie = cookieOf(await req("/password", { method: "POST", cookie, form: { csrf, current: pwd, next: "distributor passphrase 1" } }));
+    expect(await (await req("/", { cookie })).text()).toContain('href="/network"');
+    csrf = await csrfOf(cookie);
+    const subLogin = `shop${Date.now() % 100000}`;
+    const net = await (await req("/network", { method: "POST", cookie, form: { csrf, login: subLogin, name: "Dubai Shop" } })).text();
+    const subPwd = net.match(/class="secret">([^<]+)</)[1];
+    const sid = (await env.RESELLER.prepare("SELECT id, parent_id FROM reseller WHERE login = ?").bind(subLogin).first());
+    expect(sid.parent_id).toBe(d.id);
+    const t = await req(`/network/${sid.id}/transfer`, { method: "POST", cookie, form: { csrf, amount: "4" } });
+    expect(decodeURIComponent(t.headers.get("location"))).toContain("ok=Credits transferred");
+    expect(await balance(env.RESELLER, sid.id)).toBe(4);
+    expect(await balance(env.RESELLER, d.id)).toBe(6);
+    // Le sous-revendeur se connecte ; quand l'admin suspend le distributeur, il perd l'accès.
+    const sc = cookieOf(await req("/login", { method: "POST", form: { login: subLogin, password: subPwd } }));
+    expect((await req("/", { cookie: sc })).headers.get("location")).toBe("/password");
+    const acsrf = await csrfOf(admin.cookie);
+    await req(`/admin/resellers/${d.id}/status`, { method: "POST", cookie: admin.cookie, form: { csrf: acsrf, status: "suspended" } });
+    expect((await req("/", { cookie: sc })).headers.get("location")).toBe("/login");
+    // Un sous-revendeur n'a pas de menu Network et ne peut pas y accéder.
+    expect(html).not.toContain("Network</a>");
+  });
+
+  it("export CSV : en-tête et type de contenu ; activation en lot : page de résultat", async () => {
+    const rev = await account();
+    await env.RESELLER.prepare(`UPDATE reseller SET agreement_signed_at = ? WHERE id = ?`).bind(Date.now(), rev.id).run();
+    const res = await req("/export/customers.csv", { cookie: rev.cookie });
+    expect(res.headers.get("content-type")).toContain("text/csv");
+    expect(res.headers.get("content-disposition")).toContain("customers.csv");
+    const csrf = await csrfOf(rev.cookie);
+    const page = await (await req("/activate-bulk", { method: "POST", cookie: rev.cookie, form: { csrf, codes: "2222-2222\nABCD" } })).text();
+    expect(page).toContain("0 of 2 code(s) activated");
+    expect((await req("/network", { cookie: rev.cookie })).status).toBe(404);
   });
 });

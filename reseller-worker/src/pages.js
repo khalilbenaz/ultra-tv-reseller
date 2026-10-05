@@ -39,7 +39,8 @@ tr:last-child td{border-bottom:0}.mono{font-family:ui-monospace,monospace}.muted
 function page(n, title, body, { me = null, nav = "", flash = null } = {}) {
   const links = !me ? "" : me.role === "admin"
     ? [["/admin", "Revendeurs", "admin"], ["/profile", "Mon compte", "profile"]]
-    : [["/", "Dashboard", "home"], ["/customers", "Customers", "customers"], ["/messages", "Announcements", "messages"], ["/profile", "Profile", "profile"]];
+    : [["/", "Dashboard", "home"], ["/customers", "Customers", "customers"], ...(me.is_distributor === 1 ? [["/network", "Network", "network"]] : []),
+       ["/messages", "Announcements", "messages"], ["/profile", "Profile", "profile"]];
   const head = me ? `<header><div class="brand"><i></i>Ultra TV Pro</div><nav>${links.map(([h, l, k]) => `<a href="${h}" class="${k === nav ? "on" : ""}">${l}</a>`).join("")}</nav>
     <span class="muted">${esc(me.name)}</span><form method="post" action="/logout"><input type="hidden" name="csrf" value="${esc(me.csrf)}"><button class="ghost">${me.role === "admin" ? "Déconnexion" : "Log out"}</button></form></header>` : "";
   const fl = flash ? `<div class="flash ${flash.ok ? "ok" : "err"}">${esc(flash.text)}</div>` : "";
@@ -68,6 +69,9 @@ export const ERRORS = {
   invalid_amount: "Montant invalide.",
   unknown_reseller: "Revendeur introuvable.",
   conflict: "The operation could not be completed. Please try again.",
+  not_distributor: "This feature is reserved for distributors.",
+  has_subs: "Ce distributeur a des sous-revendeurs : impossible de le rétrograder.",
+  trial_already_extended: "The free trial of this device has already been extended once.",
 };
 
 export function loginPage(n, error) {
@@ -129,6 +133,16 @@ export function dashboardPage(n, me, { stats, customers, flash, agreementMissing
   <div class="card stat"><b>${stats.monthOps}</b><span>activations & renewals this month</span></div>
   <div class="card stat"><b>${stats.expiringSoon}</b><span>licenses expiring within 30 days</span></div></div>
   <h2>Activate a device</h2><p class="muted">The customer opens Ultra TV Pro: the device code is shown on screen.</p>${activateForm(me, customers)}
+  <h2>More tools</h2><div class="grid">
+  <form method="post" action="/activate-bulk" class="card" style="display:flex;flex-direction:column;gap:10px">${csrf(me)}
+    <b>Bulk activation</b><span class="muted">One code per line (1 credit each, new customers).</span>
+    <textarea name="codes" placeholder="7F3K-92QD&#10;Q8MZ-4TRA" maxlength="4000" required></textarea><div><button>Activate all</button></div></form>
+  <form method="post" action="/extend-trial" class="card" style="display:flex;flex-direction:column;gap:10px">${csrf(me)}
+    <b>Extend a free trial</b><span class="muted">+7 days, free, once per device — to let a prospect keep testing.</span>
+    <input class="code" name="code" placeholder="XXXX-XXXX" maxlength="11" required autocomplete="off"><div><button class="ghost">Extend trial</button></div></form>
+  <div class="card" style="display:flex;flex-direction:column;gap:10px"><b>Exports (CSV)</b><span class="muted">Open in Excel or Google Sheets.</span>
+    <a class="btn ghost" href="/export/customers.csv">Customers</a><a class="btn ghost" href="/export/ledger.csv">Credit history</a></div>
+  </div>
   <h2>Expiring soon</h2>${customerTable(customers.filter((c) => c.expires_at && c.expires_at - Date.now() < 30 * 24 * 3600_000).slice(0, 20))}`, { me, nav: "home", flash });
 }
 
@@ -171,11 +185,11 @@ export function messagesPage(n, me, { messages, customers, flash }) {
   return page(n, "Announcements", `<h1>Announcements</h1><p class="sub">Shown in the Ultra TV Pro inbox of your customers only (service updates, maintenance, renewal reminders, support notices).</p>
   <form method="post" action="/messages" class="card" style="display:flex;flex-direction:column;gap:10px">${csrf(me)}
   <div class="row"><label style="flex:1">Title<input name="title" maxlength="120" required></label>
-  <label>Send to<select name="target"><option value="all">All my customers</option>${customers.map((c) => `<option value="${esc(c.id)}">${esc(c.label || c.id.slice(0, 8))}</option>`).join("")}</select></label>
+  <label>Send to<select name="target"><option value="all">All my customers</option>${me.is_distributor === 1 ? `<option value="network">My whole network (all sub-resellers' customers)</option>` : ""}${customers.map((c) => `<option value="${esc(c.id)}">${esc(c.label || c.id.slice(0, 8))}</option>`).join("")}</select></label>
   <label>Visible for<select name="days"><option value="">No end</option><option value="1">1 day</option><option value="7" selected>7 days</option><option value="30">30 days</option></select></label></div>
   <label>Message<textarea name="body" maxlength="2000" required></textarea></label><div><button>Send</button></div></form>
   <h2>Sent</h2>${messages.length ? `<table><tr><th>Date</th><th>To</th><th>Message</th><th>Read by</th><th></th></tr>${messages.map((m) => `<tr><td>${fmtDateTime(m.created_at)}</td>
-  <td>${m.target === "all" ? "All" : esc(m.target_label || "1 customer")}</td><td><b>${esc(m.title)}</b><div class="muted">${esc(m.body).slice(0, 300)}</div>${m.expires_at ? `<div class="muted" style="font-size:12px">until ${fmtDate(m.expires_at)}</div>` : ""}</td>
+  <td>${m.target === "all" ? "All" : m.target === "network" ? "Whole network" : esc(m.target_label || "1 customer")}</td><td><b>${esc(m.title)}</b><div class="muted">${esc(m.body).slice(0, 300)}</div>${m.expires_at ? `<div class="muted" style="font-size:12px">until ${fmtDate(m.expires_at)}</div>` : ""}</td>
   <td>${m.reads} device(s)</td><td><form method="post" action="/messages/${esc(m.id)}/delete">${csrf(me)}<button class="ghost">Delete</button></form></td></tr>`).join("")}</table>` : `<p class="muted">No announcement yet.</p>`}`,
   { me, nav: "messages", flash });
 }
@@ -198,9 +212,11 @@ export function adminPage(n, me, { resellers, flash, created }) {
   return page(n, "Revendeurs", `<h1>Revendeurs</h1><p class="sub">Créer des comptes, ajouter des crédits après paiement, suspendre.</p>
   ${created ? `<div class="card" style="margin-bottom:16px"><b>Compte créé : ${esc(created.login)}</b><p>Mot de passe provisoire (affiché une seule fois, à transmettre au revendeur ; il devra le changer) :</p><span class="secret">${esc(created.password)}</span></div>` : ""}
   <form method="post" action="/admin/resellers" class="card inline">${csrf(me)}
-  <label>Identifiant<input name="login" pattern="[a-z0-9][a-z0-9._\\-]{2,31}" required placeholder="basil"></label><label>Nom affiché<input name="name" required maxlength="60" placeholder="Basil TV"></label><button>Créer le revendeur</button></form>
-  <h2>Liste</h2>${resellers.length ? `<table><tr><th>Revendeur</th><th>Statut</th><th>Crédits</th><th>Clients</th><th>Contrat</th><th></th></tr>${resellers.filter((r) => r.role === "reseller").map((r) => `<tr>
-  <td><b>${esc(r.name)}</b><div class="muted mono">${esc(r.login)}</div></td><td><span class="pill ${r.status === "active" ? "active" : "suspended"}">${esc(r.status)}</span></td>
+  <label>Identifiant<input name="login" pattern="[a-z0-9][a-z0-9._\\-]{2,31}" required placeholder="basil"></label><label>Nom affiché<input name="name" required maxlength="60" placeholder="Basil TV"></label>
+  <label class="row" style="flex-direction:row;align-items:center;color:var(--text)"><input type="checkbox" name="distributor" value="1"> Distributeur (peut créer des sous-revendeurs)</label><button>Créer le revendeur</button></form>
+  <h2>Liste</h2>${resellers.length ? `<table><tr><th>Revendeur</th><th>Type</th><th>Statut</th><th>Crédits</th><th>Clients</th><th>Contrat</th><th></th></tr>${resellers.filter((r) => r.role === "reseller").map((r) => `<tr>
+  <td><b>${esc(r.name)}</b><div class="muted mono">${esc(r.login)}</div></td>
+  <td>${r.is_distributor === 1 ? `<span class="pill active">distributeur</span> <span class="muted">${r.subs} sous-rev.</span>` : r.parent_id ? `<span class="muted">sous-revendeur de ${esc(r.parent_name || "?")}</span>` : "revendeur"}</td><td><span class="pill ${r.status === "active" ? "active" : "suspended"}">${esc(r.status)}</span></td>
   <td>${r.balance}</td><td>${r.customers}</td><td>${r.agreement_signed_at ? fmtDate(r.agreement_signed_at) : "<span class='muted'>non signé</span>"}</td>
   <td><a class="btn ghost" href="/admin/resellers/${esc(r.id)}">Gérer</a></td></tr>`).join("")}</table>` : `<p class="muted">Aucun revendeur.</p>`}`,
   { me, nav: "admin", flash });
@@ -215,7 +231,8 @@ export function adminResellerPage(n, me, { r, bal, entries, flash, password }) {
   <label>Nombre (négatif = correction)<input name="amount" type="number" required step="1"></label><label>Note (référence du paiement)<input name="note" maxlength="200"></label><button>Enregistrer</button></form>
   <h2>Compte</h2><div class="row">
   <form method="post" action="${base}/status">${csrf(me)}<input type="hidden" name="status" value="${r.status === "active" ? "suspended" : "active"}"><button class="${r.status === "active" ? "danger" : ""}">${r.status === "active" ? "Suspendre (coupe toutes ses licences)" : "Réactiver"}</button></form>
-  <form method="post" action="${base}/reset-password">${csrf(me)}<button class="ghost">Réinitialiser le mot de passe</button></form></div>
+  <form method="post" action="${base}/reset-password">${csrf(me)}<button class="ghost">Réinitialiser le mot de passe</button></form>
+  ${r.parent_id ? "" : `<form method="post" action="${base}/distributor">${csrf(me)}<input type="hidden" name="on" value="${r.is_distributor === 1 ? "0" : "1"}"><button class="ghost">${r.is_distributor === 1 ? "Retirer le statut distributeur" : "Faire de lui un distributeur"}</button></form>`}</div>
   <h2>Grand livre</h2>${entries.length ? `<table><tr><th>Date</th><th>Mouvement</th><th>Motif</th><th>Note</th><th>Par</th></tr>${entries.map((e) => `<tr><td>${fmtDateTime(e.created_at)}</td>
   <td><b>${e.delta > 0 ? "+" : ""}${e.delta}</b></td><td>${esc(e.reason)}</td><td class="mono">${esc(e.note || "")}</td><td>${esc(e.created_by)}</td></tr>`).join("")}</table>` : `<p class="muted">Aucun mouvement.</p>`}`,
   { me, nav: "admin", flash });
@@ -227,4 +244,43 @@ export function downloadPage(n, links) {
   <div style="display:flex;flex-direction:column;gap:10px">
   ${links.map((l) => `<a class="btn ${l.primary ? "" : "ghost"}" href="${esc(l.url)}">${esc(l.label)}</a>`).join("")}
   </div><p class="muted" style="font-size:13px;margin-top:14px">Android TV / Google TV: install the APK with "Downloader" or a file manager. Most boxes use the arm64 version.</p></div></div>`);
+}
+
+
+export function bulkResultPage(n, me, { results }) {
+  const ok = results.filter((r) => r.ok).length;
+  return page(n, "Bulk activation", `<p><a href="/">← Dashboard</a></p><h1>Bulk activation</h1><p class="sub">${ok} of ${results.length} code(s) activated.</p>
+  <table><tr><th>Code</th><th>Result</th></tr>${results.map((r) => `<tr><td class="mono">${esc(r.code)}</td><td>${r.ok ? `<span class="pill active">activated</span>` : `<span class="pill expired">${esc(ERRORS[r.error] || r.error)}</span>`}</td></tr>`).join("")}</table>`,
+  { me, nav: "home" });
+}
+
+export function networkPage(n, me, { stats, subs, flash, created }) {
+  return page(n, "Network", `<h1>Network</h1><p class="sub">Your sub-resellers: give them credits from your balance, follow their activity, suspend them if needed.</p>
+  ${created ? `<div class="card" style="margin-bottom:16px"><b>Sub-reseller created: ${esc(created.login)}</b><p>Temporary password (shown once — send it to them; they will choose their own at first sign-in):</p><span class="secret">${esc(created.password)}</span></div>` : ""}
+  <div class="grid"><div class="card stat"><b>${stats.subs}</b><span>sub-resellers (${stats.activeSubs} active)</span></div>
+  <div class="card stat"><b>${stats.subCredits}</b><span>credits held by sub-resellers</span></div>
+  <div class="card stat"><b>${stats.networkCustomers}</b><span>customers in your network</span></div>
+  <div class="card stat"><b>${stats.networkOps30}</b><span>sub-reseller activations & renewals (30 days)</span></div></div>
+  <h2>Add a sub-reseller</h2><form method="post" action="/network" class="card inline">${csrf(me)}
+  <label>Login<input name="login" pattern="[a-z0-9][a-z0-9._\\-]{2,31}" required placeholder="shop-dubai"></label><label>Display name<input name="name" required maxlength="60" placeholder="Dubai Shop"></label><button>Create</button></form>
+  <h2>Sub-resellers</h2>${subs.length ? `<table><tr><th>Sub-reseller</th><th>Status</th><th>Credits</th><th>Customers</th><th>30 days</th><th>Last activation</th><th></th></tr>${subs.map((r) => `<tr>
+  <td><b>${esc(r.name)}</b><div class="muted mono">${esc(r.login)}</div></td><td><span class="pill ${r.status === "active" ? "active" : "suspended"}">${esc(r.status)}</span>${r.agreement_signed_at ? "" : ` <span class="muted">agreement pending</span>`}</td>
+  <td>${r.balance}</td><td>${r.customers}</td><td>${r.ops30}</td><td>${r.last_op ? new Date(r.last_op).toISOString().slice(0, 10) : "—"}</td><td><a class="btn ghost" href="/network/${esc(r.id)}">Manage</a></td></tr>`).join("")}</table>` : `<p class="muted">No sub-reseller yet.</p>`}`,
+  { me, nav: "network", flash });
+}
+
+export function subResellerPage(n, me, { r, bal, myBal, entries, flash, password }) {
+  const base = `/network/${esc(r.id)}`;
+  return page(n, r.name, `<p><a href="/network">← Network</a></p><h1>${esc(r.name)}</h1>
+  <p class="sub"><span class="mono">${esc(r.login)}</span> · <span class="pill ${r.status === "active" ? "active" : "suspended"}">${esc(r.status)}</span> · <b>${bal}</b> credit(s) · agreement ${r.agreement_signed_at ? "accepted" : "pending"}</p>
+  ${password ? `<div class="card" style="margin-bottom:16px"><b>New temporary password</b> (shown once): <span class="secret">${esc(password)}</span></div>` : ""}
+  <h2>Credits</h2><div class="grid">
+  <form method="post" action="${base}/transfer" class="card inline">${csrf(me)}<label>Give credits (your balance: ${myBal})<input name="amount" type="number" min="1" step="1" required></label><button>Transfer</button></form>
+  <form method="post" action="${base}/reclaim" class="card inline">${csrf(me)}<label>Take back unused credits<input name="amount" type="number" min="1" step="1" required></label><button class="ghost">Take back</button></form></div>
+  <h2>Account</h2><div class="row">
+  <form method="post" action="${base}/status">${csrf(me)}<input type="hidden" name="status" value="${r.status === "active" ? "suspended" : "active"}"><button class="${r.status === "active" ? "danger" : ""}">${r.status === "active" ? "Suspend (blocks all their customers)" : "Reactivate"}</button></form>
+  <form method="post" action="${base}/reset-password">${csrf(me)}<button class="ghost">Reset password</button></form></div>
+  <h2>Credit history</h2>${entries.length ? `<table><tr><th>Date</th><th>Change</th><th>Reason</th><th>By</th></tr>${entries.map((e) => `<tr><td>${new Date(e.created_at).toISOString().slice(0, 16).replace("T", " ")}</td>
+  <td><b>${e.delta > 0 ? "+" : ""}${e.delta}</b></td><td>${esc(e.reason)}</td><td>${esc(e.created_by)}</td></tr>`).join("")}</table>` : `<p class="muted">No movement.</p>`}`,
+  { me, nav: "network", flash });
 }

@@ -78,27 +78,37 @@ export async function loadDeviceContext(db, installSecret) {
   if (!device) return null;
   if (!device.customer_id) return { device, license: null, reseller: null, customer: null };
   const row = await db.prepare(
-    `SELECT c.id AS c_id, c.reseller_id, r.id AS r_id, r.name, r.status AS r_status, r.support_whatsapp, r.support_telegram, r.support_text
-       FROM customer c JOIN reseller r ON r.id = c.reseller_id WHERE c.id = ?`,
+    `SELECT c.id AS c_id, c.reseller_id, r.id AS r_id, r.name, r.status AS r_status, r.support_whatsapp, r.support_telegram, r.support_text,
+            r.parent_id, p.status AS p_status
+       FROM customer c JOIN reseller r ON r.id = c.reseller_id LEFT JOIN reseller p ON p.id = r.parent_id WHERE c.id = ?`,
   ).bind(device.customer_id).first();
   // Licence la plus lointaine du client (un renouvellement prolonge, il n'y en a normalement qu'une).
   const license = await db.prepare(`SELECT * FROM license WHERE customer_id = ? ORDER BY expires_at DESC LIMIT 1`).bind(device.customer_id).first();
+  // Réseau : un sous-revendeur dont le distributeur est suspendu l'est aussi (et tous ses clients).
   const reseller = row ? {
-    id: row.r_id, name: row.name, status: row.r_status,
+    id: row.r_id, name: row.name, parentId: row.parent_id ?? null,
+    status: row.r_status === "active" && (!row.parent_id || row.p_status === "active") ? "active" : "suspended",
     support_whatsapp: row.support_whatsapp, support_telegram: row.support_telegram, support_text: row.support_text,
   } : null;
   return { device, license: license ?? null, reseller, customer: row ? { id: row.c_id } : null };
 }
+
+/**
+ * Annonces visibles par un appareil : celles de son revendeur (à tous ou à son client) et celles que le distributeur
+ * du revendeur adresse à tout son réseau. Paramètres : ?1 revendeur, ?2 « customer:<id> », ?3 maintenant, ?5 distributeur.
+ */
+export const VISIBLE_MESSAGES = `((m.reseller_id = ?1 AND (m.target = 'all' OR m.target = ?2)) OR (?5 IS NOT NULL AND m.reseller_id = ?5 AND m.target = 'network'))
+        AND (m.expires_at IS NULL OR m.expires_at > ?3)`;
+export const visibleBinds = (ctx, now) => [ctx.reseller.id, `customer:${ctx.customer.id}`, now, ctx.device.id, ctx.reseller.parentId ?? null];
 
 /** Annonces non lues destinées à l'appareil (toutes celles du revendeur + celles adressées à son client). */
 export async function unreadCount(db, ctx, now = Date.now()) {
   if (!ctx.reseller || !ctx.customer) return 0;
   const r = await db.prepare(
     `SELECT COUNT(*) AS n FROM message m
-      WHERE m.reseller_id = ? AND (m.target = 'all' OR m.target = ?)
-        AND (m.expires_at IS NULL OR m.expires_at > ?)
-        AND NOT EXISTS (SELECT 1 FROM message_read x WHERE x.message_id = m.id AND x.device_id = ?)`,
-  ).bind(ctx.reseller.id, `customer:${ctx.customer.id}`, now, ctx.device.id).first();
+      WHERE ${VISIBLE_MESSAGES}
+        AND NOT EXISTS (SELECT 1 FROM message_read x WHERE x.message_id = m.id AND x.device_id = ?4)`,
+  ).bind(...visibleBinds(ctx, now)).first();
   return r?.n ?? 0;
 }
 
