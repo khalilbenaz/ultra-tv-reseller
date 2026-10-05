@@ -2,6 +2,19 @@
 
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Versions suivant `VERSION`.
 
+## [Bureau 1.2.27] — 2026-10-05
+
+### Corrections
+- macOS : mise à jour automatique sans signature Apple. L'application télécharge elle-même la nouvelle version, puis « Installer » remplace l'application et la relance (l'ancienne est restaurée en cas d'échec). À installer une dernière fois à la main ; les suivantes sont automatiques.
+
+## [1.2.26] — 2026-10-05 (Android TV)
+
+### Corrections
+- Menu latéral : neuf entrées + synchro + profil tiennent à l'écran (Paramètres n'est plus écrasé en une barre).
+- Page série : → depuis « Lecture » va sur l'épisode à reprendre (sinon le premier), plus sur celui du bas.
+- Sous-titres : plus activés d'office à la reprise d'un film ou d'une série ; ils suivent le dernier choix (piste choisie = activés, « Désactivés » = désactivés).
+- Épisode suivant automatique : enfin effectif en fin d'épisode (Réglages › Lecture), saison suivante comprise ; l'épisode terminé est marqué vu.
+
 ## [Bureau 1.2.26] — 2026-10-05 (Mac, Windows, Linux)
 
 ### Corrections

@@ -24,3 +24,11 @@ test("édition Pro : releases vX.Y.Z du dépôt de distribution, jamais les desk
   assert.strictEqual(pickDesktopTag(rel, "v"), "v1.3.0");
   assert.strictEqual(pickDesktopTag(rel), "desktop-v9.9.9");
 });
+
+test("compareVersions : ordre numérique, pas alphabétique", () => {
+  const { compareVersions } = require("../updates.cjs");
+  assert.ok(compareVersions("1.2.26", "1.2.9") > 0);
+  assert.ok(compareVersions("1.2.9", "1.2.26") < 0);
+  assert.strictEqual(compareVersions("1.2.26", "1.2.26"), 0);
+  assert.ok(compareVersions("1.3.0", "1.2.99") > 0);
+});

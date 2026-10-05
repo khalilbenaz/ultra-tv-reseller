@@ -17,6 +17,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -134,7 +135,6 @@ class AccountViewModel @Inject constructor(
         _ui.value = _ui.value.copy(inbox = _ui.value.inbox.map { if (it.id == a.id) it.copy(read = true) else it })
         com.ultratv.tv.nativeapp.data.license.InboxBus.unread.value = _ui.value.inbox.count { !it.read }
         viewModelScope.launch { license.markRead(listOf(a.id)) }
-        }
     }
 }
 
