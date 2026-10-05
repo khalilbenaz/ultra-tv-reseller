@@ -2,6 +2,14 @@
 
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Versions suivant `VERSION`.
 
+## [Ultra TV Pro 1.2.28] — 2026-10-05
+
+### Nouveautés
+- Boîte de réception relisible dans « Abonnement » (TV et ordinateur), pastille des messages non lus dans le menu.
+- Rappels de renouvellement automatiques du revendeur (traduits), appareils utilisés / autorisés affichés.
+- Fusion de main : menu adaptatif, liste d'épisodes, sous-titres non forcés, épisode suivant automatique, mise à jour
+  macOS sans signature Apple (dépôt de distribution Pro).
+
 ## [Bureau 1.2.27] — 2026-10-05
 
 ### Corrections
