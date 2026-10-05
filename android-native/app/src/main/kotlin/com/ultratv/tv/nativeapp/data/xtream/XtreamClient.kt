@@ -299,18 +299,7 @@ class XtreamClient @Inject constructor(okBase: OkHttpClient) {
             ok.newCall(Request.Builder().url(url).build()).execute().use { resp ->
                 if (!resp.isSuccessful) return@use null
                 val root = json.parseToJsonElement(resp.body?.string().orEmpty()) as? JsonObject ?: return@use null
-                val ui = root["user_info"] as? JsonObject ?: return@use null
-                fun str(k: String) = (ui[k] as? JsonPrimitive)?.contentOrNull?.takeIf { it.isNotBlank() && it != "null" }
-                val srv = root["server_info"] as? JsonObject
-                XtreamAccount(
-                    status = str("status"),
-                    expiresAt = str("exp_date")?.toLongOrNull()?.takeIf { it > 0 }?.times(1000),
-                    activeConnections = str("active_cons")?.toIntOrNull(),
-                    maxConnections = str("max_connections")?.toIntOrNull(),
-                    createdAt = str("created_at")?.toLongOrNull()?.takeIf { it > 0 }?.times(1000),
-                    trial = str("is_trial") == "1",
-                    server = (srv?.get("url") as? JsonPrimitive)?.contentOrNull,
-                )
+                XtreamAccount.parse(root)
             }
         }.getOrNull()
     }
@@ -421,7 +410,7 @@ internal object ShortEpgTime {
     }
 }
 
-/** Informations du compte IPTV renvoyées par le serveur Xtream (`user_info`). */
+/** Informations du compte IPTV renvoyées par le serveur Xtream (`user_info`, `server_info`). */
 data class XtreamAccount(
     val status: String?,
     val expiresAt: Long?,
@@ -430,4 +419,22 @@ data class XtreamAccount(
     val createdAt: Long?,
     val trial: Boolean,
     val server: String?,
-)
+) {
+    companion object {
+        /** Les serveurs envoient chiffres en chaîne ou en nombre, et « null » en texte : tout est toléré. null sans `user_info`. */
+        fun parse(root: JsonObject): XtreamAccount? {
+            val ui = root["user_info"] as? JsonObject ?: return null
+            fun str(k: String) = (ui[k] as? JsonPrimitive)?.contentOrNull?.takeIf { it.isNotBlank() && it != "null" }
+            val srv = root["server_info"] as? JsonObject
+            return XtreamAccount(
+                status = str("status"),
+                expiresAt = str("exp_date")?.toLongOrNull()?.takeIf { it > 0 }?.times(1000),
+                activeConnections = str("active_cons")?.toIntOrNull(),
+                maxConnections = str("max_connections")?.toIntOrNull(),
+                createdAt = str("created_at")?.toLongOrNull()?.takeIf { it > 0 }?.times(1000),
+                trial = str("is_trial") == "1",
+                server = (srv?.get("url") as? JsonPrimitive)?.contentOrNull?.takeIf { it.isNotBlank() },
+            )
+        }
+    }
+}

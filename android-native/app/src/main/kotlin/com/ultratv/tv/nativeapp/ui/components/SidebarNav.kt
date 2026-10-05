@@ -72,12 +72,9 @@ internal val railItems = listOf(
     RailItem("series", Icons.Series) { it.navSeries },
     RailItem("favorites", Icons.Heart) { it.navFavorites },
     RailItem("recordings", Icons.Record) { it.navRecordings },
+    RailItem("account", Icons.Account) { it.navAccount },
     RailItem("settings", Icons.Settings) { it.navSettings },
-).let { base ->
-    // Édition Pro : « Abonnement » (validité de la licence et compte IPTV), juste avant les réglages.
-    if (com.ultratv.tv.nativeapp.BuildConfig.EDITION != "pro") base
-    else base.dropLast(1) + RailItem("account", Icons.Account) { com.ultratv.tv.nativeapp.ui.license.ProText.menu } + base.last()
-}
+)
 
 /** Largeur repliée / dépliée du rail, en px de maquette 1920×1080 (112 = 5,8 % de la largeur). */
 const val RAIL_COLLAPSED_PX = 112

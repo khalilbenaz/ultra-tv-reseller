@@ -12,11 +12,9 @@ const ITEMS: { to: string; icon: IconName; label: Key; match: string }[] = [
   { to: "/movies", icon: "movies", label: "nav.movies", match: "/movie" },
   { to: "/series", icon: "series", label: "nav.series", match: "/serie" },
   { to: "/favorites", icon: "heart", label: "nav.favorites", match: "/favorites" },
+  { to: "/account", icon: "user", label: "nav.account", match: "/account" },
   { to: "/settings", icon: "settings", label: "nav.settings", match: "/settings" },
 ];
-// Édition Pro : « Abonnement » (validité de la licence et compte IPTV), juste avant les réglages.
-const PRO_ITEM = { to: "/account", icon: "user" as IconName, label: "nav.account" as Key, match: "/account" };
-const MENU = IS_PRO ? [...ITEMS.slice(0, -1), PRO_ITEM, ITEMS[ITEMS.length - 1]!] : ITEMS;
 
 export function Rail() {
   const t = useT();
@@ -33,7 +31,7 @@ export function Rail() {
         <Icon name="search" />
       </NavLink>
       <nav aria-label={t("a11y.mainNav")}>
-        {MENU.map((i) => (
+        {ITEMS.map((i) => (
           <NavLink key={i.to} to={i.to} className={`rail-item${isActive(i.match) ? " active" : ""}`} title={t(i.label)}>
             <span className="pill"><Icon name={i.icon} /></span>
             {t(i.label)}

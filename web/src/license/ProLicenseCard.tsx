@@ -1,0 +1,41 @@
+// Édition Pro : carte « Licence Ultra TV Pro » de la page Abonnement (validité de l'application).
+
+import { usePrefs } from "@/state/prefs";
+import { AccountRow } from "@/screens/Account";
+import { checkLicense, openExternal, useLicense } from "./Gate";
+import { daysLeft, supportLink } from "./logic";
+
+const STR = {
+  en: { lic: "Ultra TV Pro license", status: "Status", until: "Valid until", left: "Days left", code: "Device code", provider: "Provider", check: "Check now", checking: "Checking…", contact: "Contact support", unknown: "Unknown",
+    st: { trial: "Free trial", active: "Active", expired: "Expired", suspended: "Suspended" } as Record<string, string> },
+  fr: { lic: "Licence Ultra TV Pro", status: "Statut", until: "Valide jusqu'au", left: "Jours restants", code: "Code de l'appareil", provider: "Fournisseur", check: "Vérifier maintenant", checking: "Vérification…", contact: "Contacter le support", unknown: "Inconnu",
+    st: { trial: "Essai gratuit", active: "Active", expired: "Expirée", suspended: "Suspendue" } as Record<string, string> },
+  ar: { lic: "ترخيص Ultra TV Pro", status: "الحالة", until: "صالح حتى", left: "الأيام المتبقية", code: "رمز الجهاز", provider: "المزوّد", check: "تحقّق الآن", checking: "جارٍ التحقق…", contact: "التواصل مع الدعم", unknown: "غير معروف",
+    st: { trial: "تجربة مجانية", active: "نشط", expired: "منتهٍ", suspended: "موقوف" } as Record<string, string> },
+};
+
+export function ProLicenseCard() {
+  const lang = usePrefs((s) => s.lang);
+  const t = lang === "fr" ? STR.fr : lang === "ar" ? STR.ar : STR.en;
+  const lic = useLicense((s) => s.state);
+  const checking = useLicense((s) => s.checking);
+  const p = lic.kind === "allowed" || lic.kind === "blocked" ? lic.p : null;
+  const link = supportLink(p);
+  const days = daysLeft(p);
+  const ok = p?.status === "active" || p?.status === "trial";
+  const fmt = (ms: number | null | undefined) => (ms ? new Date(ms).toLocaleDateString(lang, { day: "numeric", month: "long", year: "numeric" }) : "—");
+  return (
+    <section className="acc-card">
+      <h2>{t.lic} <span className="pro-badge">PRO</span></h2>
+      <AccountRow k={t.status} v={<span className={`acc-pill ${ok ? "ok" : "bad"}`}>{p ? t.st[p.status] ?? p.status : t.unknown}</span>} />
+      <AccountRow k={t.until} v={fmt(p?.until)} />
+      <AccountRow k={t.left} v={days ?? "—"} />
+      <AccountRow k={t.code} v={<span className="mono">{p?.code ?? "—"}</span>} />
+      {p?.reseller && <AccountRow k={t.provider} v={p.reseller.name + (p.reseller.text ? ` · ${p.reseller.text}` : "")} />}
+      <div className="acc-actions">
+        <button className="btn" disabled={checking} onClick={() => void checkLicense()}>{checking ? t.checking : t.check}</button>
+        {link && <button className="btn primary" onClick={() => openExternal(link)}>{t.contact}</button>}
+      </div>
+    </section>
+  );
+}

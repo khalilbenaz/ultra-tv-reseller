@@ -1,9 +1,8 @@
-// Édition Pro : « Abonnement » — validité de l'application (licence) et informations du compte IPTV de la source active.
+// « Abonnement » : informations du compte IPTV de la source active (statut, expiration, connexions), lues en direct.
 
-import { useEffect, useState } from "react";
 import { IS_PRO } from "@/edition";
-import { checkLicense, openExternal, useLicense } from "@/license/Gate";
-import { daysLeft, supportLink } from "@/license/logic";
+import { ProLicenseCard } from "@/license/ProLicenseCard";
+import { useEffect, useState, type ReactNode } from "react";
 import { handshake, type XtreamHandshake } from "@/net/xtream";
 import { currentTransport } from "@/net/transport";
 import { credsOf } from "@/sync/core";
@@ -12,52 +11,52 @@ import { useActiveSource } from "@/state/sources";
 
 const STR = {
   en: {
-    title: "Subscription", sub: "Validity of Ultra TV Pro and of your IPTV subscription.",
-    lic: "Ultra TV Pro license", status: "Status", validUntil: "Valid until", left: "Days left", code: "Device code", provider: "Provider",
-    check: "Check now", checking: "Checking…", contact: "Contact support",
-    st: { trial: "Free trial", active: "Active", expired: "Expired", suspended: "Suspended" } as Record<string, string>,
-    iptv: "IPTV subscription", source: "Source", accStatus: "Account status", expires: "Expires", conns: "Connections", server: "Server",
-    created: "Created", never: "No expiry", unknown: "Unknown", refresh: "Refresh", m3u: "M3U playlists do not provide subscription details.",
-    noSource: "No source configured.", offline: "Could not reach the provider; last known values are shown.", formats: "Formats",
+    title: "Subscription", sub: "Your IPTV subscription, as reported by your provider.", iptv: "IPTV subscription", source: "Source",
+    status: "Account status", expires: "Expires", days: "days left", conns: "Connections in use", created: "Created", trial: "Trial account",
+    yes: "Yes", server: "Server", formats: "Formats", never: "No expiry date", unknown: "Unknown", refresh: "Refresh", loading: "Loading…",
+    offline: "Could not reach the provider. Try again later.", noSource: "No source configured.", m3u: "M3U playlists do not provide subscription details.",
   },
   fr: {
-    title: "Abonnement", sub: "Validité d'Ultra TV Pro et de votre abonnement IPTV.",
-    lic: "Licence Ultra TV Pro", status: "Statut", validUntil: "Valide jusqu'au", left: "Jours restants", code: "Code de l'appareil", provider: "Fournisseur",
-    check: "Vérifier maintenant", checking: "Vérification…", contact: "Contacter le support",
-    st: { trial: "Essai gratuit", active: "Active", expired: "Expirée", suspended: "Suspendue" } as Record<string, string>,
-    iptv: "Abonnement IPTV", source: "Source", accStatus: "État du compte", expires: "Expire le", conns: "Connexions", server: "Serveur",
-    created: "Créé le", never: "Sans expiration", unknown: "Inconnu", refresh: "Actualiser", m3u: "Les listes M3U ne fournissent pas d'informations d'abonnement.",
-    noSource: "Aucune source configurée.", offline: "Fournisseur injoignable : dernières valeurs connues.", formats: "Formats",
+    title: "Abonnement", sub: "Votre abonnement IPTV, tel que l'indique votre fournisseur.", iptv: "Abonnement IPTV", source: "Source",
+    status: "État du compte", expires: "Expire le", days: "jours restants", conns: "Connexions utilisées", created: "Créé le", trial: "Compte d'essai",
+    yes: "Oui", server: "Serveur", formats: "Formats", never: "Pas de date d'expiration", unknown: "Inconnu", refresh: "Actualiser", loading: "Chargement…",
+    offline: "Fournisseur injoignable. Réessayez plus tard.", noSource: "Aucune source configurée.", m3u: "Les listes M3U ne fournissent pas d'informations d'abonnement.",
+  },
+  es: {
+    title: "Suscripción", sub: "Tu suscripción IPTV, según tu proveedor.", iptv: "Suscripción IPTV", source: "Fuente",
+    status: "Estado de la cuenta", expires: "Caduca el", days: "días restantes", conns: "Conexiones en uso", created: "Creada el", trial: "Cuenta de prueba",
+    yes: "Sí", server: "Servidor", formats: "Formatos", never: "Sin fecha de caducidad", unknown: "Desconocido", refresh: "Actualizar", loading: "Cargando…",
+    offline: "No se pudo contactar con el proveedor. Inténtalo más tarde.", noSource: "No hay ninguna fuente configurada.", m3u: "Las listas M3U no proporcionan datos de suscripción.",
   },
   ar: {
-    title: "الاشتراك", sub: "صلاحية Ultra TV Pro واشتراك IPTV الخاص بك.",
-    lic: "ترخيص Ultra TV Pro", status: "الحالة", validUntil: "صالح حتى", left: "الأيام المتبقية", code: "رمز الجهاز", provider: "المزوّد",
-    check: "تحقّق الآن", checking: "جارٍ التحقق…", contact: "التواصل مع الدعم",
-    st: { trial: "تجربة مجانية", active: "نشط", expired: "منتهٍ", suspended: "موقوف" } as Record<string, string>,
-    iptv: "اشتراك IPTV", source: "المصدر", accStatus: "حالة الحساب", expires: "ينتهي في", conns: "الاتصالات", server: "الخادم",
-    created: "أُنشئ في", never: "بدون انتهاء", unknown: "غير معروف", refresh: "تحديث", m3u: "قوائم M3U لا توفّر معلومات الاشتراك.",
-    noSource: "لا يوجد مصدر.", offline: "تعذّر الوصول إلى المزوّد: آخر القيم المعروفة.", formats: "الصيغ",
+    title: "الاشتراك", sub: "اشتراك IPTV الخاص بك كما يُبلغ عنه مزوّدك.", iptv: "اشتراك IPTV", source: "المصدر",
+    status: "حالة الحساب", expires: "ينتهي في", days: "يوم متبقٍ", conns: "الاتصالات المستخدمة", created: "أُنشئ في", trial: "حساب تجريبي",
+    yes: "نعم", server: "الخادم", formats: "الصيغ", never: "بدون تاريخ انتهاء", unknown: "غير معروف", refresh: "تحديث", loading: "جارٍ التحميل…",
+    offline: "تعذّر الوصول إلى المزوّد. حاول لاحقًا.", noSource: "لا يوجد مصدر.", m3u: "قوائم M3U لا توفّر معلومات الاشتراك.",
   },
 };
+export type AccountStr = typeof STR.en;
+export function useAccountStr(): AccountStr {
+  const lang = usePrefs((s) => s.lang);
+  return lang === "fr" ? STR.fr : lang === "es" ? STR.es : lang === "ar" ? STR.ar : STR.en;
+}
 
-function Row({ k, v }: { k: string; v: React.ReactNode }) {
+export function AccountRow({ k, v }: { k: string; v: ReactNode }) {
   return <div className="acc-row"><span className="muted">{k}</span><span>{v}</span></div>;
 }
 
-export function Account() {
+/** Carte « Abonnement IPTV » de la source active (réutilisée par l'édition Pro). */
+export function IptvAccountCard() {
+  const t = useAccountStr();
   const lang = usePrefs((s) => s.lang);
-  const t = lang === "fr" ? STR.fr : lang === "ar" ? STR.ar : STR.en;
-  const fmt = (ms: number | null | undefined) => (ms ? new Date(ms).toLocaleDateString(lang, { day: "numeric", month: "long", year: "numeric" }) : "—");
-  const lic = useLicense((s) => s.state);
-  const checking = useLicense((s) => s.checking);
-  const p = lic.kind === "allowed" || lic.kind === "blocked" ? lic.p : null;
   const source = useActiveSource();
   const [info, setInfo] = useState<XtreamHandshake["user_info"] | null>(null);
   const [srv, setSrv] = useState<XtreamHandshake["server_info"] | null>(null);
   const [failed, setFailed] = useState(false);
   const [busy, setBusy] = useState(false);
+  const fmt = (ms: number) => new Date(ms).toLocaleDateString(lang, { day: "numeric", month: "long", year: "numeric" });
 
-  const loadIptv = async () => {
+  const load = async () => {
     if (!source || source.type !== "xtream") return;
     setBusy(true);
     try {
@@ -65,53 +64,45 @@ export function Account() {
       setInfo(h.user_info ?? null); setSrv(h.server_info ?? null); setFailed(false);
     } catch { setFailed(true); } finally { setBusy(false); }
   };
-  useEffect(() => { void loadIptv(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [source?.id]);
+  useEffect(() => { void load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [source?.id]);
 
-  const exp = info?.exp_date ? Number(info.exp_date) * 1000 : source?.expDate ?? null;
-  const iptvDays = exp ? Math.max(0, Math.ceil((exp - Date.now()) / 86_400_000)) : null;
+  const num = (v: unknown) => (v == null || v === "" || v === "null" ? null : Number(v));
+  const exp = num(info?.exp_date) ? num(info!.exp_date)! * 1000 : null;
+  const created = num((info as { created_at?: unknown } | null)?.created_at);
   const status = info?.status ?? null;
-  const link = supportLink(p);
-  const days = daysLeft(p);
-  const licClass = p?.status === "active" || p?.status === "trial" ? "ok" : "bad";
+  const days = exp ? Math.max(0, Math.ceil((exp - Date.now()) / 86_400_000)) : null;
 
+  return (
+    <section className="acc-card">
+      <h2>{t.iptv}</h2>
+      {!source ? <p className="muted">{t.noSource}</p> : (
+        <>
+          <AccountRow k={t.source} v={source.name} />
+          {source.type !== "xtream" ? <p className="muted">{t.m3u}</p> : (
+            <>
+              <AccountRow k={t.status} v={<span className={`acc-pill ${status === "Active" ? "ok" : status ? "bad" : ""}`}>{status ?? (busy ? t.loading : t.unknown)}</span>} />
+              <AccountRow k={t.expires} v={exp ? `${fmt(exp)} · ${days} ${t.days}` : info ? t.never : "—"} />
+              <AccountRow k={t.conns} v={info ? `${num(info.active_cons) ?? 0} / ${num(info.max_connections) ?? source.maxConnections ?? 1}` : "—"} />
+              {created ? <AccountRow k={t.created} v={fmt(created * 1000)} /> : null}
+              {(info as { is_trial?: unknown } | null)?.is_trial === "1" && <AccountRow k={t.trial} v={t.yes} />}
+              {info?.allowed_output_formats?.length ? <AccountRow k={t.formats} v={info.allowed_output_formats.join(", ")} /> : null}
+              {srv?.url && <AccountRow k={t.server} v={<span className="mono">{srv.url}</span>} />}
+              {failed && <p className="muted">{t.offline}</p>}
+              <div className="acc-actions"><button className="btn" disabled={busy} onClick={() => void load()}>{busy ? t.loading : t.refresh}</button></div>
+            </>
+          )}
+        </>
+      )}
+    </section>
+  );
+}
+
+export function Account() {
+  const t = useAccountStr();
   return (
     <div className="page">
       <div className="page-head"><div><h1>{t.title}</h1><div className="sub">{t.sub}</div></div></div>
-      <div className="acc-grid">
-        {IS_PRO && (
-          <section className="acc-card">
-            <h2>{t.lic} <span className="pro-badge">PRO</span></h2>
-            <Row k={t.status} v={<span className={`acc-pill ${licClass}`}>{p ? t.st[p.status] ?? p.status : t.unknown}</span>} />
-            <Row k={t.validUntil} v={fmt(p?.until)} />
-            <Row k={t.left} v={days ?? "—"} />
-            <Row k={t.code} v={<span className="mono">{p?.code ?? "—"}</span>} />
-            {p?.reseller && <Row k={t.provider} v={p.reseller.name + (p.reseller.text ? ` · ${p.reseller.text}` : "")} />}
-            <div className="acc-actions">
-              <button className="btn" disabled={checking} onClick={() => void checkLicense()}>{checking ? t.checking : t.check}</button>
-              {link && <button className="btn primary" onClick={() => openExternal(link)}>{t.contact}</button>}
-            </div>
-          </section>
-        )}
-        <section className="acc-card">
-          <h2>{t.iptv}</h2>
-          {!source ? <p className="muted">{t.noSource}</p> : (
-            <>
-              <Row k={t.source} v={source.name} />
-              {source.type === "m3u" ? <p className="muted">{t.m3u}</p> : (
-                <>
-                  <Row k={t.accStatus} v={<span className={`acc-pill ${status === "Active" ? "ok" : status ? "bad" : ""}`}>{status ?? t.unknown}</span>} />
-                  <Row k={t.expires} v={exp ? `${fmt(exp)}${iptvDays != null ? ` · ${iptvDays} ${lang === "fr" ? "j" : lang === "ar" ? "ي" : "d"}` : ""}` : info ? t.never : "—"} />
-                  <Row k={t.conns} v={info ? `${Number(info.active_cons ?? 0)} / ${Number(info.max_connections ?? source.maxConnections ?? 1)}` : `— / ${source.maxConnections ?? 1}`} />
-                  {info?.allowed_output_formats?.length ? <Row k={t.formats} v={info.allowed_output_formats.join(", ")} /> : null}
-                  {srv?.url && <Row k={t.server} v={<span className="mono">{srv.url}{srv.port ? `:${srv.port}` : ""}</span>} />}
-                  {failed && <p className="muted">{t.offline}</p>}
-                  <div className="acc-actions"><button className="btn" disabled={busy} onClick={() => void loadIptv()}>{busy ? t.checking : t.refresh}</button></div>
-                </>
-              )}
-            </>
-          )}
-        </section>
-      </div>
+      <div className="acc-grid">{IS_PRO && <ProLicenseCard />}<IptvAccountCard /></div>
     </div>
   );
 }
