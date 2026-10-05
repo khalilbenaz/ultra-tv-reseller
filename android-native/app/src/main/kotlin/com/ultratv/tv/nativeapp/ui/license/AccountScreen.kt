@@ -74,6 +74,19 @@ object ProText {
     val noSource get() = t("No source configured.", "Aucune source configurée.", "لا يوجد مصدر.")
     val contact get() = t("Contact support", "Contacter le support", "التواصل مع الدعم")
     val scan get() = t("Scan to contact support", "Scannez pour contacter le support", "امسح للتواصل مع الدعم")
+    val messages get() = t("Messages", "Messages", "الرسائل")
+    val noMessages get() = t("No message from your provider.", "Aucun message de votre fournisseur.", "لا توجد رسائل من مزوّدك.")
+    val devices get() = t("Devices", "Appareils", "الأجهزة")
+    val renewTitle get() = t("Your Ultra TV Pro license expires soon", "Votre licence Ultra TV Pro expire bientôt", "ترخيص Ultra TV Pro ينتهي قريبًا")
+    fun renewBody(date: String, who: String?) = t(
+        "Your license expires on $date. Contact ${who ?: "your provider"} to renew it.",
+        "Votre licence expire le $date. Contactez ${who ?: "votre fournisseur"} pour la renouveler.",
+        "ينتهي ترخيصك في $date. تواصل مع ${who ?: "مزوّدك"} لتجديده.",
+    )
+    /** Titre et texte affichés : traduits pour un rappel automatique, tels quels pour une annonce du revendeur. */
+    fun title(a: com.ultratv.tv.nativeapp.data.license.Announcement) = if (a.kind == "renewal") renewTitle else a.title
+    fun body(a: com.ultratv.tv.nativeapp.data.license.Announcement, who: String?) =
+        if (a.kind == "renewal" && a.until != null) renewBody(DateFormat.getDateInstance(DateFormat.LONG).format(Date(a.until)), who) else a.body
     fun st(s: String) = when (s) {
         "trial" -> t("Free trial", "Essai gratuit", "تجربة مجانية")
         "active" -> t("Active", "Active", "نشط")
@@ -85,6 +98,7 @@ object ProText {
 
 data class AccountUi(
     val license: LicensePayload? = null,
+    val inbox: List<com.ultratv.tv.nativeapp.data.license.Announcement> = emptyList(),
     val sourceName: String? = null,
     val iptv: XtreamAccount? = null,
     val iptvFailed: Boolean = false,
@@ -109,7 +123,17 @@ class AccountViewModel @Inject constructor(
             val list = providers.observeProviders().first()
             val p = list.firstOrNull { it.active } ?: list.firstOrNull()
             val acc = if (p != null && p.kind == "XTREAM") xtream.fetchAccount(p) else null
-            _ui.value = AccountUi(license = lic, sourceName = p?.name, iptv = acc, iptvFailed = p != null && p.kind == "XTREAM" && acc == null, loading = false)
+            val inbox = if (license.enabled && lic != null) runCatching { license.inbox() }.getOrDefault(emptyList()) else emptyList()
+            _ui.value = AccountUi(license = lic, inbox = inbox, sourceName = p?.name, iptv = acc, iptvFailed = p != null && p.kind == "XTREAM" && acc == null, loading = false)
+        }
+    }
+
+    /** Message ouvert : marqué lu (ici, sur le serveur et dans la pastille du menu). */
+    fun open(a: com.ultratv.tv.nativeapp.data.license.Announcement) {
+        if (a.read) return
+        _ui.value = _ui.value.copy(inbox = _ui.value.inbox.map { if (it.id == a.id) it.copy(read = true) else it })
+        com.ultratv.tv.nativeapp.data.license.InboxBus.unread.value = _ui.value.inbox.count { !it.read }
+        viewModelScope.launch { license.markRead(listOf(a.id)) }
         }
     }
 }
@@ -161,7 +185,9 @@ fun AccountScreen(vm: AccountViewModel = hiltViewModel()) {
                             Text(p?.code ?: "—", color = Ux.Text, fontSize = 20.sp, fontWeight = FontWeight.Black, fontFamily = FontFamily.Monospace)
                         }
                         p?.resellerName?.let { InfoRow(ProText.provider, it + (p.supportText?.let { s -> " · $s" } ?: "")) }
+                        if (p?.devicesMax != null) InfoRow(ProText.devices, "${p.devicesUsed ?: 0} / ${p.devicesMax}")
                     }
+                    if (BuildConfig.EDITION == "pro") InboxCard(ui.inbox, p?.resellerName, onOpen = { vm.open(it) })
                     Card(ProText.iptv) {
                         val a = ui.iptv
                         when {
@@ -192,6 +218,38 @@ fun AccountScreen(vm: AccountViewModel = hiltViewModel()) {
                 if (support != null) Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     QrCode(support, 220.dp)
                     Text(ProText.scan, color = Ux.Text2, fontSize = 15.sp)
+                }
+            }
+        }
+    }
+}
+
+/** Boîte de réception (édition Pro) : annonces du revendeur et rappels, relisibles ; ouvrir un message le marque lu. */
+@Composable
+private fun InboxCard(items: List<com.ultratv.tv.nativeapp.data.license.Announcement>, from: String?, onOpen: (com.ultratv.tv.nativeapp.data.license.Announcement) -> Unit) {
+    var openId by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<String?>(null) }
+    val date = DateFormat.getDateInstance(DateFormat.MEDIUM)
+    val unread = items.count { !it.read }
+    Card(ProText.messages + if (unread > 0) "  ·  $unread" else "") {
+        if (items.isEmpty()) Text(ProText.noMessages, color = Ux.Muted, fontSize = 17.sp)
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            items.forEach { a ->
+                val expanded = openId == a.id
+                com.ultratv.tv.nativeapp.ui.design.FocusSurface(
+                    onClick = { openId = if (expanded) null else a.id; onOpen(a) },
+                    shape = RoundedCornerShape(14.dp), bg = Ux.SurfaceDeep, ringWidth = 3.dp, focusedScale = 1f,
+                    modifier = Modifier.fillMaxWidth(),
+                ) { f ->
+                    Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (!a.read) Box(Modifier.padding(end = 10.dp).background(Ux.Accent, RoundedCornerShape(50)).padding(5.dp))
+                            Text(ProText.title(a), color = if (f) Ux.TextOnLight else Ux.Text, fontSize = 18.sp,
+                                fontWeight = if (a.read) FontWeight.SemiBold else FontWeight.Bold, modifier = Modifier.weight(1f))
+                            Text(date.format(Date(a.at)), color = if (f) Ux.OnFocus2 else Ux.Muted, fontSize = 14.sp)
+                        }
+                        Text(ProText.body(a, from), color = if (f) Ux.OnFocus2 else Ux.Text2, fontSize = 16.sp,
+                            maxLines = if (expanded) Int.MAX_VALUE else 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                    }
                 }
             }
         }

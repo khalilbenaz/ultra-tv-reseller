@@ -4,10 +4,14 @@
 // appareil libre, revendeur actif et contrat accepté) ; les instructions suivantes n'agissent que si cette
 // ligne existe (`EXISTS ... ref = ?`). Deux activations simultanées du même code : une seule passe.
 
-import { normalizeDeviceCode, VISIBLE_MESSAGES, visibleBinds } from "./license.js";
+import { normalizeDeviceCode, renewalReminder, VISIBLE_MESSAGES, visibleBinds } from "./license.js";
 import { sanitizeText } from "./lib/sanitize.js";
 
 export const YEAR_MS = 365 * 24 * 3600_000;
+/** Plafond absolu d'appareils par licence (le plafond d'un revendeur est fixé entre 1 et cette valeur). */
+export const MAX_DEVICES_HARD = 10;
+/** Délais de rappel de renouvellement proposés (jours avant l'expiration ; 0 = pas de rappel). */
+export const REMINDER_CHOICES = [0, 7, 15, 30];
 export const AGREEMENT_VERSION = "2026-10-05";
 const BAL = `(SELECT COALESCE(SUM(delta), 0) FROM credit_ledger WHERE reseller_id = ?)`;
 
@@ -58,6 +62,16 @@ async function ownCustomer(db, rid, cid) {
   return c;
 }
 
+/** Plafond d'appareils par licence d'un revendeur : le sien, borné par celui de son distributeur. */
+export async function deviceCap(db, rid) {
+  const r = await getReseller(db, rid);
+  let cap = Math.min(MAX_DEVICES_HARD, Math.max(1, r?.max_devices_cap ?? 5));
+  if (r?.parent_id) cap = Math.min(cap, Math.max(1, (await getReseller(db, r.parent_id))?.max_devices_cap ?? 5));
+  return cap;
+}
+
+const intIn = (v, lo, hi) => { const n = Math.trunc(Number(v)); return Number.isFinite(n) && n >= lo && n <= hi ? n : null; };
+
 async function currentLicense(db, cid) {
   return db.prepare(`SELECT * FROM license WHERE customer_id = ? ORDER BY expires_at DESC LIMIT 1`).bind(cid).first();
 }
@@ -67,7 +81,7 @@ async function currentLicense(db, cid) {
  * - sans `customerId` : nouveau client, 1 crédit, licence 1 an / 2 appareils ;
  * - avec `customerId` : appareil supplémentaire d'un client existant, sans crédit, dans la limite de sa licence.
  */
-export async function activate(db, rid, { code, customerId = null, label = "" }, actor, now = Date.now()) {
+export async function activate(db, rid, { code, customerId = null, label = "", devices = null }, actor, now = Date.now()) {
   const device = await deviceByCode(db, code);
   if (device.customer_id) throw new PanelError("already_active");
 
@@ -88,6 +102,11 @@ export async function activate(db, rid, { code, customerId = null, label = "" },
 
   const cid = uuid(), lid = uuid();
   const lbl = text(label, 80) || null;
+  // Nombre d'appareils de la licence : choisi par le revendeur, dans son plafond.
+  const cap = await deviceCap(db, rid);
+  // Non précisé (activation en lot, ancien formulaire) : 2 appareils, ou moins si le plafond est plus bas.
+  const maxDevices = devices == null || devices === "" ? Math.min(2, cap) : intIn(devices, 1, cap);
+  if (maxDevices === null) throw new PanelError("device_cap");
   const res = await db.batch([
     db.prepare(
       `INSERT INTO credit_ledger (reseller_id, delta, reason, ref, note, created_at, created_by)
@@ -98,8 +117,8 @@ export async function activate(db, rid, { code, customerId = null, label = "" },
     ).bind(rid, lid, device.code, now, actor, device.id),
     db.prepare(`INSERT INTO customer (id, reseller_id, label, created_at) SELECT ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM credit_ledger WHERE ref = ?)`)
       .bind(cid, rid, lbl, now, lid),
-    db.prepare(`INSERT INTO license (id, customer_id, starts_at, expires_at) SELECT ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM credit_ledger WHERE ref = ?)`)
-      .bind(lid, cid, now, now + YEAR_MS, lid),
+    db.prepare(`INSERT INTO license (id, customer_id, starts_at, expires_at, max_devices) SELECT ?, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM credit_ledger WHERE ref = ?)`)
+      .bind(lid, cid, now, now + YEAR_MS, maxDevices, lid),
     db.prepare(`UPDATE device SET customer_id = ? WHERE id = ? AND customer_id IS NULL AND EXISTS (SELECT 1 FROM credit_ledger WHERE ref = ?)`)
       .bind(cid, device.id, lid),
   ]);
@@ -125,6 +144,37 @@ export async function renew(db, rid, customerId, actor, now = Date.now()) {
   ]);
   if (res[0].meta.changes !== 1) await whyRefused(db, rid, null);
   return { expiresAt: Math.max(lic.expires_at, now) + YEAR_MS };
+}
+
+/**
+ * Change le nombre d'appareils autorisés de la licence d'un client : entre 1 et le plafond du revendeur, et jamais
+ * sous le nombre d'appareils déjà rattachés (détacher d'abord). Sans effet sur les crédits.
+ */
+export async function setLicenseDevices(db, rid, customerId, n) {
+  await ownCustomer(db, rid, customerId);
+  const lic = await currentLicense(db, customerId);
+  if (!lic || lic.status === "revoked") throw new PanelError("license_inactive");
+  const max = intIn(n, 1, await deviceCap(db, rid));
+  if (max === null) throw new PanelError("device_cap");
+  const r = await db.prepare(`UPDATE license SET max_devices = ?1 WHERE id = ?2 AND (SELECT COUNT(*) FROM device WHERE customer_id = ?3) <= ?1`)
+    .bind(max, lic.id, customerId).run();
+  if (r.meta.changes !== 1) throw new PanelError("devices_in_use");
+  return max;
+}
+
+/** Plafond d'appareils par licence d'un revendeur (administrateur). */
+export async function setDeviceCap(db, rid, cap) {
+  const c = intIn(cap, 1, MAX_DEVICES_HARD);
+  if (c === null) throw new PanelError("device_cap");
+  await db.prepare(`UPDATE reseller SET max_devices_cap = ? WHERE id = ? AND role = 'reseller'`).bind(c, rid).run();
+}
+
+/** Plafond d'un sous-revendeur, fixé par son distributeur dans la limite du sien. */
+export async function setSubDeviceCap(db, did, sid, cap) {
+  await getSub(db, did, sid);
+  const c = intIn(cap, 1, await deviceCap(db, did));
+  if (c === null) throw new PanelError("device_cap");
+  await db.prepare(`UPDATE reseller SET max_devices_cap = ? WHERE id = ?`).bind(c, sid).run();
 }
 
 /** Suspend / réactive la licence d'un client (ses appareils passent « suspendu »). Sans effet sur les crédits. */
@@ -165,7 +215,8 @@ export async function listCustomers(db, rid, q = "") {
     `SELECT c.id, c.label, c.created_at,
             (SELECT MAX(expires_at) FROM license WHERE customer_id = c.id) AS expires_at,
             (SELECT status FROM license WHERE customer_id = c.id ORDER BY expires_at DESC LIMIT 1) AS lic_status,
-            (SELECT COUNT(*) FROM device WHERE customer_id = c.id) AS devices
+            (SELECT COUNT(*) FROM device WHERE customer_id = c.id) AS devices,
+            (SELECT max_devices FROM license WHERE customer_id = c.id ORDER BY expires_at DESC LIMIT 1) AS max_devices
        FROM customer c
       WHERE c.reseller_id = ?1
         AND (?2 = '%%' OR c.label LIKE ?2 OR EXISTS (SELECT 1 FROM device d WHERE d.customer_id = c.id AND d.code LIKE ?2))
@@ -228,7 +279,14 @@ export async function inboxFor(db, ctx, now = Date.now()) {
       WHERE ${VISIBLE_MESSAGES}
       ORDER BY m.created_at DESC LIMIT 50`,
   ).bind(...visibleBinds(ctx, now)).all();
-  return results.map((m) => ({ ...m, read: !!m.read }));
+  const list = results.map((m) => ({ ...m, kind: "message", read: !!m.read }));
+  // Rappel de renouvellement automatique (réglé par le revendeur), en tête : texte traduit par l'app grâce à `kind`.
+  const rem = renewalReminder(ctx, now);
+  if (rem) {
+    const read = await db.prepare(`SELECT 1 AS x FROM message_read WHERE message_id = ? AND device_id = ?`).bind(rem.id, ctx.device.id).first();
+    list.unshift({ ...rem, read: !!read });
+  }
+  return list;
 }
 
 export async function markRead(db, ctx, ids, now = Date.now()) {
@@ -243,13 +301,14 @@ export async function markRead(db, ctx, ids, now = Date.now()) {
 
 // ---- profil et contrat ----
 
-export async function updateProfile(db, rid, { name, whatsapp, telegram, supportText }) {
+export async function updateProfile(db, rid, { name, whatsapp, telegram, supportText, reminderDays }) {
   const n = text(name, 60);
   if (!n) throw new PanelError("name_required");
   const wa = text(whatsapp, 32).replace(/[^\d+]/g, "") || null;
   const tg = text(telegram, 64).replace(/^@/, "").replace(/[^\w]/g, "") || null;
-  await db.prepare(`UPDATE reseller SET name = ?, support_whatsapp = ?, support_telegram = ?, support_text = ? WHERE id = ?`)
-    .bind(n, wa, tg, text(supportText, 300) || null, rid).run();
+  const rd = REMINDER_CHOICES.includes(Number(reminderDays)) ? Number(reminderDays) : 15;
+  await db.prepare(`UPDATE reseller SET name = ?, support_whatsapp = ?, support_telegram = ?, support_text = ?, reminder_days = ? WHERE id = ?`)
+    .bind(n, wa, tg, text(supportText, 300) || null, rd, rid).run();
 }
 
 export async function acceptAgreement(db, rid, now = Date.now()) {

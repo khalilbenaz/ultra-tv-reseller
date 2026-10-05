@@ -17,6 +17,9 @@ data class LicensePayload(
     val supportText: String?,
     val unread: Int,
     val issuedAt: Long,
+    /** Appareils rattachés à la licence / nombre autorisé (null : pas encore de licence). */
+    val devicesUsed: Int? = null,
+    val devicesMax: Int? = null,
 )
 
 /** Règles pures (testables sans Android) : signature Ed25519 et droit d'utiliser l'application. */
@@ -49,6 +52,7 @@ object LicenseLogic {
             until = o.long("until"), graceUntil = o.long("graceUntil"),
             resellerName = r?.str("name"), whatsapp = r?.str("whatsapp"), telegram = r?.str("telegram"), supportText = r?.str("text"),
             unread = o.optInt("unread", 0), issuedAt = o.optLong("issuedAt"),
+            devicesUsed = o.optJSONObject("devices")?.optInt("used"), devicesMax = o.optJSONObject("devices")?.optInt("max"),
         )
     }
 

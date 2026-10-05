@@ -18,7 +18,13 @@ import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
 
-data class Announcement(val id: String, val title: String, val body: String, val at: Long, val read: Boolean)
+/** Annonce du revendeur, ou rappel automatique (`kind = "renewal"`, texte traduit par l'app à partir de `until`). */
+data class Announcement(val id: String, val title: String, val body: String, val at: Long, val read: Boolean, val kind: String = "message", val until: Long? = null)
+
+/** Nombre d'annonces non lues (pastille du menu « Abonnement »), partagé entre la porte de licence et l'écran. */
+object InboxBus {
+    val unread = kotlinx.coroutines.flow.MutableStateFlow(0)
+}
 
 /**
  * Licence de l'édition Pro : enregistrement de l'appareil (code + essai), statut signé, boîte de réception.
@@ -110,7 +116,8 @@ class LicenseClient @Inject constructor(@ApplicationContext private val ctx: Con
                 if (!r.isSuccessful) return@use emptyList()
                 val a = JSONObject(r.body!!.string()).optJSONArray("messages") ?: JSONArray()
                 (0 until a.length()).map { i -> a.getJSONObject(i) }.map {
-                    Announcement(it.getString("id"), it.optString("title"), it.optString("body"), it.optLong("at"), it.optBoolean("read"))
+                    Announcement(it.getString("id"), it.optString("title"), it.optString("body"), it.optLong("at"), it.optBoolean("read"),
+                        kind = it.optString("kind", "message").ifBlank { "message" }, until = if (it.has("until") && !it.isNull("until")) it.optLong("until") else null)
                 }
             }
         }.getOrDefault(emptyList())

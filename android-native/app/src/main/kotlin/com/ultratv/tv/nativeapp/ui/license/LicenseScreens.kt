@@ -131,9 +131,9 @@ fun AnnouncementDialog(a: Announcement, from: String?, onDismiss: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Text(L.from.format(from ?: L.provider), color = Ux.Muted, fontSize = 15.sp)
-            Text(a.title, color = Ux.Text, fontSize = 28.sp, fontWeight = FontWeight.Bold)
+            Text(ProText.title(a), color = Ux.Text, fontSize = 28.sp, fontWeight = FontWeight.Bold)
             Column(Modifier.verticalScroll(rememberScrollState()).weight(1f, fill = false)) {
-                Text(a.body, color = Ux.Text2, fontSize = 19.sp)
+                Text(ProText.body(a, from), color = Ux.Text2, fontSize = 19.sp)
             }
             PillButton(L.ok, onClick = onDismiss, modifier = Modifier.focusRequester(focus))
         }

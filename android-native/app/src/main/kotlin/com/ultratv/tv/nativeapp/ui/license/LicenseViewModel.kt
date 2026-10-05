@@ -72,6 +72,7 @@ class LicenseViewModel @Inject constructor(
     }
 
     private fun apply(p: LicensePayload, offline: Boolean) {
+        com.ultratv.tv.nativeapp.data.license.InboxBus.unread.value = p.unread
         _state.value = if (LicenseLogic.allowed(p, System.currentTimeMillis())) LicenseUi.Allowed(p)
         else LicenseUi.Blocked(p, p.code, offline)
     }
@@ -79,6 +80,7 @@ class LicenseViewModel @Inject constructor(
     /** Annonce lue : retirée de la file et signalée au serveur. */
     fun dismiss(a: Announcement) {
         _unread.value = _unread.value.filterNot { it.id == a.id }
+        com.ultratv.tv.nativeapp.data.license.InboxBus.unread.value = (com.ultratv.tv.nativeapp.data.license.InboxBus.unread.value - 1).coerceAtLeast(0)
         viewModelScope.launch { client.markRead(listOf(a.id)) }
     }
 }

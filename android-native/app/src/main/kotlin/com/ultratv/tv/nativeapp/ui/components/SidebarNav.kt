@@ -124,6 +124,7 @@ fun SidebarNav(navController: NavController) {
     val labelAlphaState = androidx.compose.animation.core.animateFloatAsState(if (labels) 1f else 0f, tween(if (noAnim) 0 else 80), label = "railLabels")
     val showLabels by remember { androidx.compose.runtime.derivedStateOf { labelAlphaState.value > 0f } }
 
+    val inboxUnread by com.ultratv.tv.nativeapp.data.license.InboxBus.unread.collectAsState()
     val activeFocus = remember { androidx.compose.ui.focus.FocusRequester() }
     val hasActive = route == "search" || railItems.any { isSelected(route, it.route) }
 
@@ -229,6 +230,8 @@ fun SidebarNav(navController: NavController) {
                                 Spacer(Modifier.width(16.design))
                                 Box(Modifier.size(32.design), contentAlignment = Alignment.Center) {
                                     DIcon(item.icon, 30.design, when { focused -> Ux.TextOnLight; active -> Ux.White; expanded -> Ux.Text; else -> Ux.Text3 })
+                                    // Édition Pro : pastille des messages non lus du revendeur sur « Abonnement ».
+                                    if (item.route == "account" && inboxUnread > 0) Box(Modifier.align(Alignment.TopEnd).size(12.design).clip(CircleShape).background(Ux.Accent))
                                 }
                                 if (showLabels) {
                                     Spacer(Modifier.width(16.design))

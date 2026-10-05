@@ -116,14 +116,14 @@ async function resellerRoute(env, me, path, m, form, url) {
   if (path === "/" && m === "GET" && !me.agreement_signed_at) return redirect("/agreement");
   if (path === "/" && m === "GET") {
     const [stats, customers] = await Promise.all([P.dashboardStats(db, me.id), P.listCustomers(db, me.id)]);
-    return view(V.dashboardPage, me, { stats, customers, flash, agreementMissing: !me.agreement_signed_at });
+    return view(V.dashboardPage, me, { stats, customers, flash, agreementMissing: !me.agreement_signed_at, cap: await P.deviceCap(db, me.id) });
   }
   if (path === "/activate" && m === "POST") {
     if (!me.agreement_signed_at) return redirect("/agreement");
     const customerId = form.get("customer") || null;
     const to = customerId ? `/customers/${encodeURIComponent(customerId)}` : "/";
     return attempt(to, customerId ? "Device added." : "Device activated for one year.", () =>
-      P.activate(db, me.id, { code: form.get("code"), customerId, label: form.get("label") }, me.login));
+      P.activate(db, me.id, { code: form.get("code"), customerId, label: form.get("label"), devices: form.get("devices") }, me.login));
   }
   if (path === "/activate-bulk" && m === "POST") {
     if (!me.agreement_signed_at) return redirect("/agreement");
@@ -143,12 +143,12 @@ async function resellerRoute(env, me, path, m, form, url) {
     const q = url.searchParams.get("q") || "";
     return view(V.customersPage, me, { customers: await P.listCustomers(db, me.id, q), q, flash });
   }
-  const cm = path.match(/^\/customers\/([0-9a-f-]{36})(?:\/(renew|suspend|resume|label|iptv|iptv\/remove)|\/devices\/([0-9a-f-]{36})\/detach)?$/);
+  const cm = path.match(/^\/customers\/([0-9a-f-]{36})(?:\/(renew|suspend|resume|label|iptv|iptv\/remove|max-devices)|\/devices\/([0-9a-f-]{36})\/detach)?$/);
   if (cm) {
     const [, cid, action, did] = cm;
     const to = `/customers/${cid}`;
     if (m === "GET" && !action && !did) {
-      try { return view(V.customerPage, me, { detail: await P.customerDetail(db, me.id, cid), flash, iptv: await getCustomerSource(env, cid).catch(() => null) }); }
+      try { return view(V.customerPage, me, { detail: await P.customerDetail(db, me.id, cid), flash, iptv: await getCustomerSource(env, cid).catch(() => null), cap: await P.deviceCap(db, me.id) }); }
       catch (e) { if (e instanceof P.PanelError) return redirect("/customers"); throw e; }
     }
     if (m === "POST" && did) return attempt(to, "Device detached.", () => P.detachDevice(db, me.id, did));
@@ -157,6 +157,7 @@ async function resellerRoute(env, me, path, m, form, url) {
     if (m === "POST" && action === "resume") return attempt(to, "Customer resumed.", () => P.setCustomerSuspended(db, me.id, cid, false));
     if (m === "POST" && action === "iptv") return attempt(to, "IPTV subscription saved: devices will update within minutes.", () => setCustomerSource(env, me.id, cid, Object.fromEntries(form), me.login));
     if (m === "POST" && action === "iptv/remove") return attempt(to, "IPTV subscription removed.", () => removeCustomerSource(env, me.id, cid));
+    if (m === "POST" && action === "max-devices") return attempt(to, "Device limit updated.", () => P.setLicenseDevices(db, me.id, cid, form.get("max")));
     if (m === "POST" && action === "label") return attempt(to, "Saved.", () => P.setCustomerLabel(db, me.id, cid, form.get("label"), form.get("note")));
   }
   if (path === "/messages") {
@@ -167,7 +168,7 @@ async function resellerRoute(env, me, path, m, form, url) {
   const dm = path.match(/^\/messages\/([0-9a-f-]{36})\/delete$/);
   if (dm && m === "POST") return attempt("/messages", "Deleted.", () => P.deleteMessage(db, me.id, dm[1]));
   if (path === "/profile") {
-    if (m === "POST") return attempt("/profile", "Profile saved.", () => P.updateProfile(db, me.id, { name: form.get("name"), whatsapp: form.get("whatsapp"), telegram: form.get("telegram"), supportText: form.get("supportText") }));
+    if (m === "POST") return attempt("/profile", "Profile saved.", () => P.updateProfile(db, me.id, { name: form.get("name"), whatsapp: form.get("whatsapp"), telegram: form.get("telegram"), reminderDays: form.get("reminderDays"), supportText: form.get("supportText") }));
     return view(V.profilePage, me, { r: me, flash });
   }
   return json({ error: "not_found" }, 404);
@@ -191,17 +192,18 @@ async function networkRoute(env, me, path, m, form, url) {
     }
     return view(V.networkPage, me, { stats: await P.networkStats(db, me.id), subs: await P.listSubResellers(db, me.id), flash });
   }
-  const nm = path.match(/^\/network\/([0-9a-f-]{36})(?:\/(transfer|reclaim|status|reset-password))?$/);
+  const nm = path.match(/^\/network\/([0-9a-f-]{36})(?:\/(transfer|reclaim|status|reset-password|device-cap))?$/);
   if (!nm) return json({ error: "not_found" }, 404);
   const [, sid, action] = nm;
   let r;
   try { r = await P.getSub(db, me.id, sid); } catch { return redirect("/network"); }
   const to = `/network/${sid}`;
-  const show = async (extra = {}) => view(V.subResellerPage, me, { r: await P.getReseller(db, sid), bal: await P.balance(db, sid), myBal: await P.balance(db, me.id), entries: await P.ledger(db, sid), flash, ...extra });
+  const show = async (extra = {}) => view(V.subResellerPage, me, { r: await P.getReseller(db, sid), bal: await P.balance(db, sid), myBal: await P.balance(db, me.id), entries: await P.ledger(db, sid), stats: await P.dashboardStats(db, sid), myCap: await P.deviceCap(db, me.id), flash, ...extra });
   if (m === "GET" && !action) return show();
   if (m === "POST" && action === "transfer") return attempt(to, "Credits transferred.", () => P.transferCredits(db, me.id, sid, form.get("amount"), me.login));
   if (m === "POST" && action === "reclaim") return attempt(to, "Credits taken back.", () => P.reclaimCredits(db, me.id, sid, form.get("amount"), me.login));
   if (m === "POST" && action === "status") return attempt(to, "Status updated.", () => P.setSubStatus(db, me.id, sid, form.get("status")));
+  if (m === "POST" && action === "device-cap") return attempt(to, "Device limit updated.", () => P.setSubDeviceCap(db, me.id, sid, form.get("cap")));
   if (m === "POST" && action === "reset-password") {
     const password = tempPassword();
     await P.setPassword(db, r.id, await hashPassword(password), { mustChange: true });
@@ -224,7 +226,7 @@ async function adminRoute(env, me, path, m, form, url) {
     } catch (e) { if (e instanceof P.PanelError) return back("/admin", { e: e.code }); throw e; }
     return view(V.adminPage, me, { resellers: await P.listResellers(db), created: { login: String(form.get("login")).trim().toLowerCase(), password } });
   }
-  const am = path.match(/^\/admin\/resellers\/([0-9a-f-]{36})(?:\/(credits|status|reset-password|distributor))?$/);
+  const am = path.match(/^\/admin\/resellers\/([0-9a-f-]{36})(?:\/(credits|status|reset-password|distributor|device-cap))?$/);
   if (am) {
     const [, rid, action] = am;
     const r = await P.getReseller(db, rid);
@@ -234,6 +236,7 @@ async function adminRoute(env, me, path, m, form, url) {
     if (m === "GET" && !action) return show();
     if (m === "POST" && action === "credits") return attempt(to, "Crédits enregistrés.", () => P.addCredits(db, rid, form.get("amount"), form.get("note"), me.login));
     if (m === "POST" && action === "status") return attempt(to, "Statut mis à jour.", () => P.setResellerStatus(db, rid, form.get("status")));
+    if (m === "POST" && action === "device-cap") return attempt(to, "Plafond d'appareils mis à jour.", () => P.setDeviceCap(db, rid, form.get("cap")));
     if (m === "POST" && action === "distributor") return attempt(to, "Statut distributeur mis à jour.", () => P.setDistributor(db, rid, form.get("on") === "1"));
     if (m === "POST" && action === "reset-password") {
       const password = tempPassword();

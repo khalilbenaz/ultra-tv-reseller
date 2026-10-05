@@ -80,7 +80,8 @@ export async function loadDeviceContext(db, installSecret) {
   if (!device.customer_id) return { device, license: null, reseller: null, customer: null };
   const row = await db.prepare(
     `SELECT c.id AS c_id, c.reseller_id, r.id AS r_id, r.name, r.status AS r_status, r.support_whatsapp, r.support_telegram, r.support_text,
-            r.parent_id, p.status AS p_status
+            r.parent_id, p.status AS p_status, r.reminder_days,
+            (SELECT COUNT(*) FROM device WHERE customer_id = c.id) AS devices_used
        FROM customer c JOIN reseller r ON r.id = c.reseller_id LEFT JOIN reseller p ON p.id = r.parent_id WHERE c.id = ?`,
   ).bind(device.customer_id).first();
   // Licence la plus lointaine du client (un renouvellement prolonge, il n'y en a normalement qu'une).
@@ -90,8 +91,9 @@ export async function loadDeviceContext(db, installSecret) {
     id: row.r_id, name: row.name, parentId: row.parent_id ?? null,
     status: row.r_status === "active" && (!row.parent_id || row.p_status === "active") ? "active" : "suspended",
     support_whatsapp: row.support_whatsapp, support_telegram: row.support_telegram, support_text: row.support_text,
+    reminder_days: row.reminder_days ?? 15,
   } : null;
-  return { device, license: license ?? null, reseller, customer: row ? { id: row.c_id } : null };
+  return { device, license: license ?? null, reseller, customer: row ? { id: row.c_id, devicesUsed: row.devices_used ?? 0 } : null };
 }
 
 /**
@@ -102,6 +104,24 @@ export const VISIBLE_MESSAGES = `((m.reseller_id = ?1 AND (m.target = 'all' OR m
         AND (m.expires_at IS NULL OR m.expires_at > ?3)`;
 export const visibleBinds = (ctx, now) => [ctx.reseller.id, `customer:${ctx.customer.id}`, now, ctx.device.id, ctx.reseller.parentId ?? null];
 
+/**
+ * Rappel de renouvellement automatique : licence active qui expire dans le délai choisi par le revendeur.
+ * Un identifiant par échéance (un renouvellement repousse l'échéance : nouveau rappel la fois suivante).
+ */
+export function renewalReminder(ctx, now = Date.now()) {
+  const days = ctx.reseller?.reminder_days ?? 0;
+  const l = ctx.license;
+  if (!days || !l || l.status !== "active" || l.expires_at <= now || l.expires_at - now > days * 24 * 3600_000) return null;
+  return {
+    id: `renew-${l.id.slice(0, 8)}-${l.expires_at}`,
+    kind: "renewal",
+    until: l.expires_at,
+    title: "Your Ultra TV Pro license expires soon",
+    body: `Your license expires on ${new Date(l.expires_at).toISOString().slice(0, 10)}. Contact ${ctx.reseller.name} to renew it.`,
+    at: Math.max(l.expires_at - days * 24 * 3600_000, l.starts_at),
+  };
+}
+
 /** Annonces non lues destinées à l'appareil (toutes celles du revendeur + celles adressées à son client). */
 export async function unreadCount(db, ctx, now = Date.now()) {
   if (!ctx.reseller || !ctx.customer) return 0;
@@ -110,7 +130,10 @@ export async function unreadCount(db, ctx, now = Date.now()) {
       WHERE ${VISIBLE_MESSAGES}
         AND NOT EXISTS (SELECT 1 FROM message_read x WHERE x.message_id = m.id AND x.device_id = ?4)`,
   ).bind(...visibleBinds(ctx, now)).first();
-  return r?.n ?? 0;
+  let n = r?.n ?? 0;
+  const rem = renewalReminder(ctx, now);
+  if (rem && !(await db.prepare(`SELECT 1 AS x FROM message_read WHERE message_id = ? AND device_id = ?`).bind(rem.id, ctx.device.id).first())) n++;
+  return n;
 }
 
 /** Charge utile du statut (ce que l'app affiche et vérifie hors ligne). */
@@ -126,6 +149,8 @@ export function statusPayload(ctx, unread, now = Date.now()) {
     // Hors ligne, l'app accepte le dernier statut signé jusqu'à cette date.
     graceUntil: (status === "active" || status === "trial") && until ? until + GRACE_MS : null,
     reseller: r ? { name: r.name, whatsapp: r.support_whatsapp || null, telegram: r.support_telegram || null, text: r.support_text || null } : null,
+    // Appareils rattachés à la licence du client / nombre autorisé (affiché dans l'app).
+    devices: ctx.customer && ctx.license ? { used: ctx.customer.devicesUsed ?? 0, max: ctx.license.max_devices ?? 2 } : null,
     unread,
     issuedAt: now,
   };

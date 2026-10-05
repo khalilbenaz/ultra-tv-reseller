@@ -72,7 +72,9 @@ export const ERRORS = {
   no_credit: "Not enough credits. Please top up your balance.",
   agreement_required: "Please accept the reseller agreement first.",
   reseller_suspended: "Your reseller account is suspended.",
-  device_limit: "This customer already uses the maximum number of devices (2). Detach one first.",
+  device_limit: "This customer already uses all the devices of their license. Detach one first, or raise the device limit on the customer page.",
+  device_cap: "That number of devices is above your limit.",
+  devices_in_use: "More devices are attached than that: detach some first.",
   license_inactive: "This customer's license is not active. Renew it first.",
   unknown_customer: "Customer not found.",
   unknown_device: "Device not found.",
@@ -135,22 +137,27 @@ function licPill(status, expiresAt, now = Date.now()) {
   return `<span class="pill active">active</span>`;
 }
 
-function activateForm(me, customers) {
+function devicesSelect(name, cap, selected) {
+  return `<select name="${name}">${Array.from({ length: cap }, (_, i) => i + 1).map((n) => `<option value="${n}"${n === selected ? " selected" : ""}>${n}</option>`).join("")}</select>`;
+}
+
+function activateForm(me, customers, cap = 2) {
   return `<form method="post" action="/activate" class="card inline">${csrf(me)}
   <label>Device code<input class="code" name="code" placeholder="XXXX-XXXX" maxlength="11" required autocomplete="off"></label>
-  <label>Customer<select name="customer"><option value="">New customer (1 credit)</option>${customers.filter((c) => c.devices < 2).map((c) => `<option value="${esc(c.id)}">${esc(c.label || c.id.slice(0, 8))} — add device (free)</option>`).join("")}</select></label>
+  <label>Customer<select name="customer"><option value="">New customer (1 credit)</option>${customers.filter((c) => c.devices < (c.max_devices ?? 2)).map((c) => `<option value="${esc(c.id)}">${esc(c.label || c.id.slice(0, 8))} — add device (free)</option>`).join("")}</select></label>
   <label>Label (optional)<input name="label" placeholder="e.g. Ahmed — room 2" maxlength="80"></label>
+  <label>Devices (new customer)${devicesSelect("devices", cap, Math.min(2, cap))}</label>
   <button>Activate</button></form>`;
 }
 
-export function dashboardPage(n, me, { stats, customers, flash, agreementMissing }) {
+export function dashboardPage(n, me, { stats, customers, flash, agreementMissing, cap = 2 }) {
   return page(n, "Dashboard", `<h1>Dashboard</h1><p class="sub">Activate devices, renew licenses, reach your customers.</p>
   ${agreementMissing ? `<div class="flash err">You must <a href="/agreement">accept the reseller agreement</a> before activating devices.</div>` : ""}
   <div class="grid"><div class="card stat"><b>${stats.balance}</b><span>credits available</span></div>
   <div class="card stat"><b>${stats.customers}</b><span>customers</span></div>
   <div class="card stat"><b>${stats.monthOps}</b><span>activations & renewals this month</span></div>
   <div class="card stat"><b>${stats.expiringSoon}</b><span>licenses expiring within 30 days</span></div></div>
-  <h2>Activate a device</h2><p class="muted">The customer opens Ultra TV Pro: the device code is shown on screen.</p>${activateForm(me, customers)}
+  <h2>Activate a device</h2><p class="muted">The customer opens Ultra TV Pro: the device code is shown on screen.</p>${activateForm(me, customers, cap)}
   <h2>Set up a customer's IPTV subscription</h2><p class="muted">Type the code shown on the customer's screen: the app adds the subscription by itself (no typing on the TV). Applies to all devices of that customer.</p>
   <form method="post" action="/iptv-by-code" class="card inline">${csrf(me)}
   <label>Device code<input class="code" name="code" placeholder="XXXX-XXXX" maxlength="11" required autocomplete="off"></label>${iptvFields(null)}<button>Send to the device</button></form>
@@ -171,7 +178,7 @@ function customerTable(list) {
   if (!list.length) return `<p class="muted">Nothing here.</p>`;
   return `<table><tr><th>Customer</th><th>License</th><th>Expires</th><th>Devices</th><th></th></tr>${list.map((c) => `<tr>
   <td>${esc(c.label || "—")}<div class="muted mono" style="font-size:12px">${esc(c.id.slice(0, 8))}</div></td><td>${licPill(c.lic_status, c.expires_at)}</td>
-  <td>${fmtDate(c.expires_at)}</td><td>${c.devices} / 2</td><td><a class="btn ghost" href="/customers/${esc(c.id)}">Open</a></td></tr>`).join("")}</table>`;
+  <td>${fmtDate(c.expires_at)}</td><td>${c.devices} / ${c.max_devices ?? 2}</td><td><a class="btn ghost" href="/customers/${esc(c.id)}">Open</a></td></tr>`).join("")}</table>`;
 }
 
 export function customersPage(n, me, { customers, q, flash }) {
@@ -180,7 +187,7 @@ export function customersPage(n, me, { customers, q, flash }) {
   ${customerTable(customers)}`, { me, nav: "customers", flash });
 }
 
-export function customerPage(n, me, { detail, flash, iptv = null }) {
+export function customerPage(n, me, { detail, flash, iptv = null, cap = 2 }) {
   const { customer: c, license: l, devices } = detail;
   const base = `/customers/${esc(c.id)}`;
   return page(n, c.label || "Customer", `<p><a href="/customers">← Customers</a></p><h1>${esc(c.label || "Customer")}</h1>
@@ -192,6 +199,8 @@ export function customerPage(n, me, { detail, flash, iptv = null }) {
       : `<form method="post" action="${base}/suspend">${csrf(me)}<button class="ghost">Suspend</button></form>`}
   </div>
   <h2>Devices (${devices.length} / ${l?.max_devices ?? 2})</h2>
+  ${l && l.status !== "revoked" ? `<form method="post" action="${base}/max-devices" class="card inline" style="margin-bottom:12px">${csrf(me)}
+  <label>Devices allowed on this license (your limit: ${cap})${devicesSelect("max", Math.max(cap, l.max_devices ?? 2), l.max_devices ?? 2)}</label><button class="ghost">Update</button></form>` : ""}
   ${devices.length ? `<table><tr><th>Code</th><th>Device</th><th>App</th><th>Last seen</th><th></th></tr>${devices.map((d) => `<tr><td class="mono">${esc(d.code)}</td>
   <td>${esc(d.platform || "")} ${esc(d.model || "")}</td><td>${esc(d.app_version || "—")}</td><td>${fmtDateTime(d.last_seen_at)}</td>
   <td><form method="post" action="${base}/devices/${esc(d.id)}/detach">${csrf(me)}<button class="ghost">Detach</button></form></td></tr>`).join("")}</table>` : `<p class="muted">No device.</p>`}
@@ -227,7 +236,9 @@ export function profilePage(n, me, { r, flash }) {
   <label>Display name<input name="name" value="${esc(r.name)}" maxlength="60" required></label>
   <label>WhatsApp number (international, e.g. +971…)<input name="whatsapp" value="${esc(r.support_whatsapp || "")}" maxlength="32"></label>
   <label>Telegram username<input name="telegram" value="${esc(r.support_telegram || "")}" maxlength="64"></label>
-  <label>Support text<textarea name="supportText" maxlength="300">${esc(r.support_text || "")}</textarea></label><div><button>Save</button></div></form>
+  <label>Support text<textarea name="supportText" maxlength="300">${esc(r.support_text || "")}</textarea></label>
+  <label>Automatic renewal reminder in your customers' inbox<select name="reminderDays">${[[0, "Off"], [7, "7 days before expiry"], [15, "15 days before expiry"], [30, "30 days before expiry"]].map(([v, t]) => `<option value="${v}"${(r.reminder_days ?? 15) === v ? " selected" : ""}>${t}</option>`).join("")}</select></label>
+  <div><button>Save</button></div></form>
   <h2>Account</h2><p class="muted">Login: <span class="mono">${esc(r.login)}</span> · Agreement accepted: ${r.agreement_signed_at ? `${fmtDate(r.agreement_signed_at)} (v${esc(r.agreement_version || "")})` : `<a href="/agreement">not yet</a>`}</p>
   <p><a class="btn ghost" href="/password">Change password</a></p>`, { me, nav: "profile", flash });
 }
@@ -255,6 +266,8 @@ export function adminResellerPage(n, me, { r, bal, entries, flash, password }) {
   ${password ? `<div class="card" style="margin-bottom:16px"><b>Nouveau mot de passe provisoire</b> (affiché une seule fois) : <span class="secret">${esc(password)}</span></div>` : ""}
   <h2>Crédits</h2><form method="post" action="${base}/credits" class="card inline">${csrf(me)}
   <label>Nombre (négatif = correction)<input name="amount" type="number" required step="1"></label><label>Note (référence du paiement)<input name="note" maxlength="200"></label><button>Enregistrer</button></form>
+  <h2>Appareils par licence</h2><form method="post" action="${base}/device-cap" class="card inline">${csrf(me)}
+  <label>Plafond (le revendeur choisit de 1 à ce nombre pour chaque client)${devicesSelect("cap", 10, r.max_devices_cap ?? 5)}</label><button>Enregistrer</button></form>
   <h2>Compte</h2><div class="card acts">
   <div class="act"><form method="post" action="${base}/status">${csrf(me)}<input type="hidden" name="status" value="${r.status === "active" ? "suspended" : "active"}"><button class="${r.status === "active" ? "danger" : ""}">${r.status === "active" ? "Suspendre" : "Réactiver"}</button></form>
     <span class="muted">${r.status === "active" ? "Bloque son accès au panneau et ses nouvelles activations. Ses clients gardent leur licence jusqu'à expiration." : "Rend l'accès au panneau et les activations."}</span></div>
@@ -298,11 +311,16 @@ export function networkPage(n, me, { stats, subs, flash, created }) {
   { me, nav: "network", flash });
 }
 
-export function subResellerPage(n, me, { r, bal, myBal, entries, flash, password }) {
+export function subResellerPage(n, me, { r, bal, myBal, entries, flash, password, stats = null, myCap = 5 }) {
   const base = `/network/${esc(r.id)}`;
   return page(n, r.name, `<p><a href="/network">← Network</a></p><h1>${esc(r.name)}</h1>
   <p class="sub"><span class="mono">${esc(r.login)}</span> · <span class="pill ${r.status === "active" ? "active" : "suspended"}">${esc(r.status)}</span> · <b>${bal}</b> credit(s) · agreement ${r.agreement_signed_at ? "accepted" : "pending"}</p>
   ${password ? `<div class="card" style="margin-bottom:16px"><b>New temporary password</b> (shown once): <span class="secret">${esc(password)}</span></div>` : ""}
+  ${stats ? `<div class="grid"><div class="card"><div class="muted">Customers</div><b style="font-size:26px">${stats.customers}</b></div>
+  <div class="card"><div class="muted">Activations + renewals this month</div><b style="font-size:26px">${stats.monthOps}</b></div>
+  <div class="card"><div class="muted">Licenses expiring in 30 days</div><b style="font-size:26px">${stats.expiringSoon}</b></div></div>` : ""}
+  <h2>Devices per license</h2><form method="post" action="${base}/device-cap" class="card inline">${csrf(me)}
+  <label>Limit (your own limit: ${myCap})${devicesSelect("cap", myCap, Math.min(r.max_devices_cap ?? 5, myCap))}</label><button>Save</button></form>
   <h2>Credits</h2><div class="grid">
   <form method="post" action="${base}/transfer" class="card inline">${csrf(me)}<label>Give credits (your balance: ${myBal})<input name="amount" type="number" min="1" step="1" required></label><button>Transfer</button></form>
   <form method="post" action="${base}/reclaim" class="card inline">${csrf(me)}<label>Take back unused credits<input name="amount" type="number" min="1" step="1" required></label><button class="ghost">Take back</button></form></div>
