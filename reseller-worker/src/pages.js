@@ -232,6 +232,7 @@ export function adminResellerPage(n, me, { r, bal, entries, flash, password }) {
   const base = `/admin/resellers/${esc(r.id)}`;
   return page(n, r.name, `<p><a href="/admin">← Revendeurs</a></p><h1>${esc(r.name)}</h1>
   <p class="sub"><span class="mono">${esc(r.login)}</span> · <span class="pill ${r.status === "active" ? "active" : "suspended"}">${esc(r.status)}</span> · solde <b>${bal}</b> crédit(s) · contrat ${r.agreement_signed_at ? `signé le ${fmtDate(r.agreement_signed_at)}` : "non signé"}</p>
+  ${r.agreement_signed_at ? "" : `<p class="muted" style="font-size:13px;margin-top:-10px">Le contrat est accepté par le revendeur lui-même : il lui est présenté dès sa connexion (après le changement de mot de passe). Aucune activation n'est possible avant.</p>`}
   ${password ? `<div class="card" style="margin-bottom:16px"><b>Nouveau mot de passe provisoire</b> (affiché une seule fois) : <span class="secret">${esc(password)}</span></div>` : ""}
   <h2>Crédits</h2><form method="post" action="${base}/credits" class="card inline">${csrf(me)}
   <label>Nombre (négatif = correction)<input name="amount" type="number" required step="1"></label><label>Note (référence du paiement)<input name="note" maxlength="200"></label><button>Enregistrer</button></form>

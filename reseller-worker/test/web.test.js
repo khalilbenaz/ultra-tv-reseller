@@ -45,6 +45,10 @@ describe("connexion", () => {
   it("revendeur connecté → tableau de bord ; non connecté → /login", async () => {
     const a = await account();
     expect(a.res.headers.get("location")).toBe("/");
+    // Contrat pas encore accepté : le tableau de bord mène au contrat ; une fois accepté, il s'affiche.
+    expect((await req("/", { cookie: a.cookie })).headers.get("location")).toBe("/agreement");
+    const csrf = await csrfOf(a.cookie);
+    await req("/agreement", { method: "POST", cookie: a.cookie, form: { csrf, accept: "1" } });
     expect((await req("/", { cookie: a.cookie })).status).toBe(200);
     expect((await req("/")).headers.get("location")).toBe("/login");
   });
@@ -86,10 +90,10 @@ describe("protections", () => {
 
   it("le texte saisi est échappé (pas d'injection HTML)", async () => {
     const a = await account();
-    const html = await (await req("/", { cookie: a.cookie })).text();
+    const html = await (await req("/profile", { cookie: a.cookie })).text();
     expect(html).toContain("Nom &lt;b&gt;");
     expect(html).not.toContain("Nom <b>");
-    const res = await req("/", { cookie: a.cookie });
+    const res = await req("/profile", { cookie: a.cookie });
     expect(res.headers.get("content-security-policy")).toContain("script-src 'nonce-");
   });
 
@@ -189,7 +193,7 @@ describe("phase 2 : distributeur via le panneau", () => {
     let cookie = cookieOf(await req("/login", { method: "POST", form: { login, password: pwd } }));
     csrf = await csrfOf(cookie, "/password");
     cookie = cookieOf(await req("/password", { method: "POST", cookie, form: { csrf, current: pwd, next: "distributor passphrase 1" } }));
-    expect(await (await req("/", { cookie })).text()).toContain('href="/network"');
+    expect(await (await req("/profile", { cookie })).text()).toContain('href="/network"');
     csrf = await csrfOf(cookie);
     const subLogin = `shop${Date.now() % 100000}`;
     const net = await (await req("/network", { method: "POST", cookie, form: { csrf, login: subLogin, name: "Dubai Shop" } })).text();

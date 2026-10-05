@@ -109,6 +109,8 @@ async function resellerRoute(env, me, path, m, form, url) {
     if (m === "POST") { if (form.get("accept") !== "1") return redirect("/agreement"); await P.acceptAgreement(db, me.id); return back("/", { ok: "Agreement accepted. You can now activate devices." }); }
     return view(V.agreementPage, me, {});
   }
+  // Contrat pas encore accepté : le tableau de bord mène d'abord au contrat (il ne peut rien activer sans).
+  if (path === "/" && m === "GET" && !me.agreement_signed_at) return redirect("/agreement");
   if (path === "/" && m === "GET") {
     const [stats, customers] = await Promise.all([P.dashboardStats(db, me.id), P.listCustomers(db, me.id)]);
     return view(V.dashboardPage, me, { stats, customers, flash, agreementMissing: !me.agreement_signed_at });
