@@ -186,6 +186,8 @@ android {
             "META-INF/DEPENDENCIES",
             "META-INF/LICENSE*",
             "META-INF/NOTICE*",
+            // Bouncy Castle (édition Pro) et jspecify embarquent le même manifeste OSGi multi-versions.
+            "META-INF/versions/9/OSGI-INF/MANIFEST.MF",
         )
     }
 }
