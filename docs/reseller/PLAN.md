@@ -130,7 +130,7 @@ CREATE TABLE message_read (message_id TEXT, device_id TEXT, read_at INTEGER, PRI
 | 1 ✅ | D1 + schéma + API `register` / `status` signé + tests (16) — `reseller-worker/` | fait le 2026-10-05 |
 | 2 ✅ | Panneau : admin crédits, activation, clients, renouvellement, suspension, contrat | fait le 2026-10-05 |
 | 3 ✅ | App « Ultra TV Pro » : écran d'activation, contrôle hors ligne signé, expiration (Android + bureau) | fait le 2026-10-05 |
-| 4 ✅ | Annonces : panneau + affichage dans l'app (au démarrage) | fait le 2026-10-05 |
+| 4 ✅ | Annonces : panneau + affichage dans l'app (au démarrage) ; boîte de réception relisible (§9) | fait le 2026-10-05 |
 | 5 🟡 | Contact support ✅ ; recette avec 2–3 vrais appareils du revendeur | à faire avec Basil |
 | **Total pilote** | | **≈ 4 à 6 semaines** à temps partiel |
 
@@ -172,3 +172,16 @@ L'application publique (édition standard) n'est pas modifiée dans son comporte
   `device.trial_extended`), exports CSV clients et grand livre (cellules commençant par = + - @ neutralisées).
 - Migration `0003_network.sql`. Le distributeur revend ses crédits au prix qu'il veut, hors plateforme : seul le
   distributeur est facturé par l'éditeur.
+
+## 9. Appareils par licence, rappels, boîte de réception (✅ 2026-10-05)
+
+- **Appareils par licence** : plafond par revendeur (`reseller.max_devices_cap`, défaut 5, max 10), fixé par l'admin ;
+  un distributeur fixe celui de ses sous-revendeurs dans la limite du sien. Le revendeur choisit le nombre d'appareils
+  à l'activation (défaut 2) et le modifie sur la fiche client, jamais sous le nombre d'appareils rattachés. Un crédit
+  par licence quel que soit ce nombre. Le statut envoyé à l'app contient `devices: { used, max }`.
+- **Rappel de renouvellement automatique** : `reseller.reminder_days` (0, 7, 15, 30 ; défaut 15), réglé dans le profil.
+  Entrée synthétique de la boîte de réception (`kind = "renewal"`, `until`), traduite par l'app, une par échéance.
+- **Boîte de réception dans l'app** (TV et bureau) : liste relisible dans « Abonnement », pastille de non-lus sur
+  l'entrée du menu ; les annonces non lues restent présentées au démarrage et à chaque contrôle (15 min).
+- **Fiche sous-revendeur** : clients, activations + renouvellements du mois, licences qui expirent sous 30 jours.
+- Migration `0005_devices_reminders.sql`.
