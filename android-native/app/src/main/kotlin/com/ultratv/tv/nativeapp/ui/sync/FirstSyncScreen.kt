@@ -76,6 +76,7 @@ fun FirstSyncScreen(ui: FirstSyncUi, onWatchLive: () -> Unit, onRetry: () -> Uni
                 androidx.compose.runtime.CompositionLocalProvider(androidx.compose.ui.platform.LocalLayoutDirection provides androidx.compose.ui.unit.LayoutDirection.Ltr) { Row {
 Text("ULTRA ", fontFamily = Sora, fontWeight = FontWeight.Bold, fontSize = 28.spx, letterSpacing = 1.7.sp, color = Ux.Text)
                 Text("TV", fontFamily = Sora, fontWeight = FontWeight.SemiBold, fontSize = 28.spx, letterSpacing = 1.7.sp, color = Ux.Text3)
+                if (com.ultratv.tv.nativeapp.BuildConfig.EDITION == "pro") Text(" PRO", fontFamily = Sora, fontWeight = FontWeight.ExtraBold, fontSize = 28.spx, letterSpacing = 1.7.sp, color = Ux.Accent)
 }}
             }
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.widthIn(max = 700.design)) {

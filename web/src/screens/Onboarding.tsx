@@ -1,4 +1,5 @@
 // Assistant d'ajout d'une source : type -> identifiants (vérifiés) -> langues -> première synchro.
+import { IS_PRO } from "@/edition";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { db } from "@/db/db";
@@ -33,7 +34,7 @@ export function errorKey(e: unknown, t: TFn, type?: Source["type"]): string {
 
 function Brand() {
   const t = useT();
-  return <div className="brand"><AppMark size={40} className="ic" /><span>ULTRA <span>TV</span></span><span className="sr-only">{t("app.name")}</span></div>;
+  return <div className="brand"><AppMark size={40} className="ic" /><span>ULTRA <span>TV</span>{IS_PRO && <> PRO</>}</span><span className="sr-only">{t("app.name")}</span></div>;
 }
 
 function Steps({ n }: { n: number }) {

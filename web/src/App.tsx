@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { IS_PRO } from "@/edition";
+import { Account } from "@/screens/Account";
 import { LicenseGate } from "@/license/Gate";
 import { HashRouter, Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { dirOf, useT } from "@/i18n";
@@ -145,6 +147,7 @@ function Shell() {
           <Route path="/serie/:id" element={<SeriesDetail />} />
           <Route path="/search" element={<Search />} />
           <Route path="/favorites" element={<Favorites />} />
+          {IS_PRO && <Route path="/account" element={<Account />} />}
           <Route path="/settings/:section?" element={<Settings />} />
           <Route path="/welcome/*" element={<Onboarding />} />
           <Route path="/profiles" element={<Profiles />} />

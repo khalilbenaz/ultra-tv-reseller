@@ -14,13 +14,13 @@ type State =
   | { kind: "allowed"; p: LicensePayload }
   | { kind: "blocked"; p: LicensePayload | null; code: string; offline: boolean };
 
-const useLicense = create<{ state: State; checking: boolean; unread: Announcement[] }>(() => ({ state: { kind: "loading" }, checking: false, unread: [] }));
+export const useLicense = create<{ state: State; checking: boolean; unread: Announcement[] }>(() => ({ state: { kind: "loading" }, checking: false, unread: [] }));
 
 function apply(p: LicensePayload, offline: boolean) {
   useLicense.setState({ state: licenseAllows(p) ? { kind: "allowed", p } : { kind: "blocked", p, code: p.code, offline } });
 }
 
-async function check() {
+export async function checkLicense() {
   if (useLicense.getState().checking) return;
   useLicense.setState({ checking: true });
   const b = bridge();
@@ -43,8 +43,8 @@ function start() {
   started = true;
   document.title = "Ultra TV Pro";
   void cachedLicense().then((c) => { if (c && useLicense.getState().state.kind === "loading") apply(c, true); });
-  void check();
-  setInterval(() => void check(), 6 * 3600_000);
+  void checkLicense();
+  setInterval(() => void checkLicense(), 6 * 3600_000);
 }
 
 const STR = {
@@ -75,7 +75,7 @@ function useStr() {
   return lang === "fr" ? STR.fr : lang === "ar" ? STR.ar : STR.en;
 }
 
-function open(url: string) {
+export function openExternal(url: string) {
   const b = bridge();
   if (b?.openExternal) void b.openExternal(url);
   else window.open(url, "_blank", "noopener");
@@ -99,8 +99,8 @@ function Blocked({ s }: { s: Extract<State, { kind: "blocked" }> }) {
         <div className="lic-code">{s.code || "—"}</div>
         {p?.reseller && <p className="muted">{p.reseller.name}{p.reseller.text ? ` · ${p.reseller.text}` : ""}</p>}
         <div className="lic-actions">
-          <button className="btn primary" onClick={() => void check()} disabled={checking}>{checking ? t.checking : t.again}</button>
-          {link && <button className="btn" onClick={() => open(link)}>{t.contact}</button>}
+          <button className="btn primary" onClick={() => void checkLicense()} disabled={checking}>{checking ? t.checking : t.again}</button>
+          {link && <button className="btn" onClick={() => openExternal(link)}>{t.contact}</button>}
         </div>
       </div>
     </div>
@@ -114,7 +114,7 @@ function Banner({ p }: { p: LicensePayload }) {
   const text = p.status === "trial" ? t.trial(d, p.code) : p.status === "active" && d <= 15 ? t.expires(d) : null;
   if (!text) return null;
   const link = supportLink(p);
-  return <div className="banner lic-banner" role="status">{text}{link && <button className="btn sm" onClick={() => open(link)}>{t.contact}</button>}</div>;
+  return <div className="banner lic-banner" role="status">{text}{link && <button className="btn sm" onClick={() => openExternal(link)}>{t.contact}</button>}</div>;
 }
 
 function AnnouncementModal({ a, from }: { a: Announcement; from: string | null }) {

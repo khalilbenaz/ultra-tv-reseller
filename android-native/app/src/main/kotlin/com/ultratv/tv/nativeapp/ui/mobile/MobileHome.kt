@@ -86,6 +86,7 @@ fun MobileTopBar(profileInitial: String, profileColor: Int, onSearch: () -> Unit
             Row {
                 Text("ULTRA ", fontFamily = Sora, fontWeight = FontWeight.ExtraBold, fontSize = 19.sp, letterSpacing = 0.8.sp, color = Ux.Text)
                 Text("TV", fontFamily = Sora, fontWeight = FontWeight.SemiBold, fontSize = 19.sp, letterSpacing = 0.8.sp, color = Ux.Text3)
+                if (com.ultratv.tv.nativeapp.BuildConfig.EDITION == "pro") Text(" PRO", fontFamily = Sora, fontWeight = FontWeight.ExtraBold, fontSize = 19.sp, letterSpacing = 0.8.sp, color = Ux.Accent)
             }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {

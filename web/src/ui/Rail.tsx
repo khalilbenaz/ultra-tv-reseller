@@ -1,4 +1,5 @@
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { IS_PRO } from "@/edition";
 import { useT, type Key } from "@/i18n";
 import { usePrefs } from "@/state/prefs";
 import { useSync } from "@/state/sync";
@@ -13,6 +14,9 @@ const ITEMS: { to: string; icon: IconName; label: Key; match: string }[] = [
   { to: "/favorites", icon: "heart", label: "nav.favorites", match: "/favorites" },
   { to: "/settings", icon: "settings", label: "nav.settings", match: "/settings" },
 ];
+// Édition Pro : « Abonnement » (validité de la licence et compte IPTV), juste avant les réglages.
+const PRO_ITEM = { to: "/account", icon: "user" as IconName, label: "nav.account" as Key, match: "/account" };
+const MENU = IS_PRO ? [...ITEMS.slice(0, -1), PRO_ITEM, ITEMS[ITEMS.length - 1]!] : ITEMS;
 
 export function Rail() {
   const t = useT();
@@ -24,12 +28,12 @@ export function Rail() {
   const isActive = (m: string) => (m === "/" ? loc.pathname === "/" : loc.pathname.startsWith(m));
   return (
     <nav className="rail" aria-label={t("app.name")}>
-      <AppMark />
+      <div className="rail-mark"><AppMark />{IS_PRO && <span className="pro-badge">PRO</span>}</div>
       <NavLink to="/search" className={`rail-search${isActive("/search") ? " active" : ""}`} title={`${t("nav.search")} (Ctrl/⌘ K)`} aria-label={t("nav.search")}>
         <Icon name="search" />
       </NavLink>
       <nav aria-label={t("a11y.mainNav")}>
-        {ITEMS.map((i) => (
+        {MENU.map((i) => (
           <NavLink key={i.to} to={i.to} className={`rail-item${isActive(i.match) ? " active" : ""}`} title={t(i.label)}>
             <span className="pill"><Icon name={i.icon} /></span>
             {t(i.label)}

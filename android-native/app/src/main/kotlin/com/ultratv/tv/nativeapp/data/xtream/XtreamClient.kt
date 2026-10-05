@@ -292,6 +292,29 @@ class XtreamClient @Inject constructor(okBase: OkHttpClient) {
         }.getOrNull()
     }
 
+    /** Compte IPTV (`user_info`) : statut, expiration, connexions. null si injoignable. Aucun identifiant n'est journalisé. */
+    suspend fun fetchAccount(p: ProviderEntity): XtreamAccount? = withContext(Dispatchers.IO) {
+        runCatching {
+            val url = "${p.baseUrl}/player_api.php?username=${p.username.urlEnc()}&password=${p.password.urlEnc()}"
+            ok.newCall(Request.Builder().url(url).build()).execute().use { resp ->
+                if (!resp.isSuccessful) return@use null
+                val root = json.parseToJsonElement(resp.body?.string().orEmpty()) as? JsonObject ?: return@use null
+                val ui = root["user_info"] as? JsonObject ?: return@use null
+                fun str(k: String) = (ui[k] as? JsonPrimitive)?.contentOrNull?.takeIf { it.isNotBlank() && it != "null" }
+                val srv = root["server_info"] as? JsonObject
+                XtreamAccount(
+                    status = str("status"),
+                    expiresAt = str("exp_date")?.toLongOrNull()?.takeIf { it > 0 }?.times(1000),
+                    activeConnections = str("active_cons")?.toIntOrNull(),
+                    maxConnections = str("max_connections")?.toIntOrNull(),
+                    createdAt = str("created_at")?.toLongOrNull()?.takeIf { it > 0 }?.times(1000),
+                    trial = str("is_trial") == "1",
+                    server = (srv?.get("url") as? JsonPrimitive)?.contentOrNull,
+                )
+            }
+        }.getOrNull()
+    }
+
     // ---- Helpers ----
 
     /** Petite liste (catégories) : les erreurs réseau REMONTENT (avant : avalées => catalogue vidé). */
@@ -397,3 +420,14 @@ internal object ShortEpgTime {
         return local?.minus(offsetMs)
     }
 }
+
+/** Informations du compte IPTV renvoyées par le serveur Xtream (`user_info`). */
+data class XtreamAccount(
+    val status: String?,
+    val expiresAt: Long?,
+    val activeConnections: Int?,
+    val maxConnections: Int?,
+    val createdAt: Long?,
+    val trial: Boolean,
+    val server: String?,
+)

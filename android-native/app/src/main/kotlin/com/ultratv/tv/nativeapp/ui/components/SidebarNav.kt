@@ -73,7 +73,11 @@ internal val railItems = listOf(
     RailItem("favorites", Icons.Heart) { it.navFavorites },
     RailItem("recordings", Icons.Record) { it.navRecordings },
     RailItem("settings", Icons.Settings) { it.navSettings },
-)
+).let { base ->
+    // Édition Pro : « Abonnement » (validité de la licence et compte IPTV), juste avant les réglages.
+    if (com.ultratv.tv.nativeapp.BuildConfig.EDITION != "pro") base
+    else base.dropLast(1) + RailItem("account", Icons.Account) { com.ultratv.tv.nativeapp.ui.license.ProText.menu } + base.last()
+}
 
 /** Largeur repliée / dépliée du rail, en px de maquette 1920×1080 (112 = 5,8 % de la largeur). */
 const val RAIL_COLLAPSED_PX = 112
@@ -165,6 +169,7 @@ fun SidebarNav(navController: NavController) {
                             Row(Modifier.graphicsLayer { alpha = labelAlphaState.value }) {
                             Text("ULTRA ", fontFamily = Sora, fontWeight = FontWeight.Bold, fontSize = 26.spx, letterSpacing = 1.6.sp, color = Ux.Text, maxLines = 1, softWrap = false)
                             Text("TV", fontFamily = Sora, fontWeight = FontWeight.SemiBold, fontSize = 26.spx, letterSpacing = 1.6.sp, color = Ux.Text3, maxLines = 1, softWrap = false)
+                            if (com.ultratv.tv.nativeapp.BuildConfig.EDITION == "pro") Text(" PRO", fontFamily = Sora, fontWeight = FontWeight.ExtraBold, fontSize = 26.spx, letterSpacing = 1.6.sp, color = Ux.Accent, maxLines = 1, softWrap = false)
                             }
                         }
                     }
