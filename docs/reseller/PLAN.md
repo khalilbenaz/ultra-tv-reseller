@@ -16,7 +16,7 @@ revendeurs sous forme de **crédits prépayés**. Le revendeur gère ses clients
 | Annonces + boîte de réception dans l'app (ciblées sur ses clients) | Statistiques avancées | Rappels de renouvellement **d'abonnement IPTV** (c'est son commerce) |
 | Contact support du revendeur affiché dans l'app | Paiement en ligne des crédits | Promotion commune avec ses chaînes |
 
-## 2. Décision produit à trancher AVANT de coder
+## 2. Décision produit — ✅ tranchée le 2026-10-05 : option A (version revendeur séparée)
 
 **Où s'applique la licence ?** Si l'application publique gratuite fait la même chose sans licence, les clients du
 revendeur l'installeront à la place : ses crédits ne valent rien.
@@ -132,7 +132,7 @@ CREATE TABLE message_read (message_id TEXT, device_id TEXT, read_at INTEGER, PRI
 
 ## 6. Questions ouvertes
 
-- Option §2 retenue (A recommandée) ?
+- ~~Option §2~~ → **A retenue** : variante de build « revendeur » (Android `productFlavor` + build bureau séparé), l'app publique reste gratuite et inchangée.
 - Durée d'essai (7 jours ?) et délai de grâce hors ligne (3 jours ?).
 - Changement de box : détachement libre par le revendeur, ou limité (ex. 2 par an) ?
 - Remboursement d'un crédit si activation annulée sous 48 h ?
