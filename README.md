@@ -17,6 +17,106 @@ Ultra TV Pro est **le même lecteur** qu'Ultra TV, avec une couche de licence :
 fournit, n'héberge et ne vend **aucun contenu** ; chaque revendeur accepte un **contrat** (contenu sous licence) avant sa
 première activation.
 
+## Règles métier
+
+Règles appliquées par le Worker `ultratv-reseller` (et vérifiées par ses tests). Toute évolution d'une règle doit être
+reportée ici.
+
+### Rôles
+
+| Rôle | Créé par | Peut |
+|---|---|---|
+| **Administrateur** (`admin`) | à l'installation | Créer revendeurs et distributeurs, ajouter / corriger des crédits, suspendre, réinitialiser un mot de passe, promouvoir / rétrograder un distributeur, voir les grands livres |
+| **Distributeur** | l'administrateur | Tout ce que fait un revendeur + créer des sous-revendeurs, leur transférer / reprendre des crédits, les suspendre, écrire à tout son réseau |
+| **Revendeur** | l'administrateur | Accepter le contrat, activer, renouveler, gérer ses clients, envoyer des annonces, exporter |
+| **Sous-revendeur** | son distributeur | Comme un revendeur ; ses crédits viennent de son distributeur ; ne peut pas créer de sous-revendeur |
+
+- Deux niveaux au maximum : distributeur → sous-revendeurs.
+- Un distributeur ne voit et ne gère que **ses** sous-revendeurs ; un revendeur que **ses** clients.
+- Un distributeur ne peut pas être rétrogradé tant qu'il a des sous-revendeurs.
+
+### Comptes et connexion
+
+- Identifiant : 3 à 32 caractères (lettres minuscules, chiffres, `.`, `_`, `-`), unique.
+- Tout nouveau compte reçoit un **mot de passe provisoire affiché une seule fois** ; il doit être changé à la première
+  connexion (10 caractères minimum). Changer ou réinitialiser un mot de passe ferme les autres sessions.
+- Tentatives de connexion limitées : 10 par IP / 15 min, 20 par identifiant / heure.
+
+### Contrat revendeur
+
+- Obligatoire avant la **première activation** (revendeurs et sous-revendeurs ; l'administrateur n'en a pas besoin).
+- Le revendeur garantit que le contenu qu'il distribue est **sous licence** ; il reste seul responsable de ses services,
+  abonnements et clients. Ultra TV Pro ne fournit, n'héberge ni ne vend aucun contenu.
+- Texte : page `/agreement` du panneau (version `AGREEMENT_VERSION` dans `reseller-worker/src/panel.js`).
+
+### Crédits
+
+- **Prépayés** : l'administrateur ajoute des crédits après paiement, avec une note de référence.
+- **1 crédit = 1 client pendant 1 an, jusqu'à 2 appareils**, ou **1 renouvellement d'1 an**.
+- Le solde est la **somme du grand livre** (jamais stocké) ; chaque mouvement est tracé : achat, activation,
+  renouvellement, transfert, correction.
+- **Jamais de solde négatif**, jamais de crédit dépensé deux fois, même en cas de clics simultanés.
+- Correction négative par l'administrateur possible, dans la limite du solde.
+- Un crédit utilisé n'est pas remboursé.
+
+### Appareils, essai et activation
+
+- Au premier lancement, l'application reçoit un **code appareil** `XXXX-XXXX` (sans 0/O ni 1/I/L) et un **essai gratuit
+  de 7 jours**.
+- **Activation d'un nouveau client** : 1 crédit, licence d'**1 an** à partir de l'activation, **2 appareils** maximum.
+- **Deuxième appareil** d'un client : gratuit, si sa licence est active et qu'il reste une place.
+- **Changement de box** : le revendeur détache l'ancien appareil, la place se libère pour un nouveau code.
+- Un code déjà activé ne peut pas être activé à nouveau (ni par un autre revendeur).
+- **Activation en lot** : jusqu'à 200 codes, résultat par code ; s'arrête dès que les crédits manquent.
+- **Prolongation d'essai** : +7 jours, **gratuite, une seule fois par appareil**, seulement si l'appareil n'est pas activé.
+- Un client appartient **définitivement** au revendeur qui l'a activé.
+
+### Renouvellement et expiration
+
+- Renouveler = 1 crédit = **+1 an à partir de la fin actuelle** (ou d'aujourd'hui si la licence a déjà expiré).
+- À l'expiration, l'application se bloque et affiche le code de l'appareil et le contact du revendeur ;
+  bandeau d'avertissement dans l'application 15 jours avant.
+
+### Suspension
+
+| Action | Effet | Les clients |
+|---|---|---|
+| L'administrateur suspend un **revendeur** | Plus d'accès au panneau, plus d'activation ni de renouvellement | **Gardent leur licence jusqu'à expiration** |
+| L'administrateur suspend un **distributeur** | Idem pour lui **et tout son réseau** (sous-revendeurs) | **Gardent leur licence jusqu'à expiration** |
+| Un distributeur suspend un **sous-revendeur** | Plus d'accès ni d'activation pour ce sous-revendeur | **Gardent leur licence jusqu'à expiration** |
+| Un revendeur suspend **un client** (fiche client) | Ce client est bloqué (tous ses appareils) | Seul ce client ; réversible (« Resume ») |
+
+Principe : **un client a payé sa période, elle est toujours honorée.** Seule la suspension explicite d'un client le bloque.
+Exception : décision d'un tribunal ou d'une autorité compétente (contrat §6).
+
+### Réseau de distribution
+
+- Le distributeur **transfère** des crédits de son solde vers un sous-revendeur, ou **reprend** des crédits inutilisés ;
+  chaque transfert crée deux lignes de grand livre (débit / crédit) de même référence : rien n'est créé ni perdu.
+- Le distributeur revend ses crédits au prix qu'il veut, **hors plateforme** ; l'éditeur ne facture que le distributeur.
+- Le distributeur voit pour chaque sous-revendeur : solde, clients, activations des 30 derniers jours, dernière activation ;
+  il ne voit pas le détail de leurs clients.
+
+### Annonces
+
+- Cibles : **tous mes clients**, **un client**, ou (distributeur) **tout mon réseau**.
+- Durée de visibilité : 1, 7, 30 jours ou sans fin ; titre 120 caractères, message 2 000.
+- Affichées à l'ouverture de l'application, une à la fois ; « OK » les marque lues ; le panneau indique le nombre de lectures.
+
+### Application et hors ligne
+
+- Le statut de licence est **signé (Ed25519)** par le Worker et vérifié par l'application avec la clé publique embarquée.
+- Contrôle au démarrage puis toutes les 6 heures ; **hors ligne**, le dernier statut signé reste valable jusqu'à
+  **3 jours** après la fin de la licence ou de l'essai (délai de grâce).
+- Une horloge d'appareil reculée ne prolonge pas une licence.
+- Le menu **Abonnement** montre la licence (statut, fin, jours restants, code, revendeur, contact) et l'abonnement IPTV.
+
+### Données
+
+- Aucune donnée personnelle obligatoire : un client est identifié par un **libellé libre** et ses codes appareil.
+- Aucune adresse IP stockée ; le secret d'installation d'un appareil n'est conservé que haché.
+- Exports **CSV** (clients, historique des crédits) : cellules neutralisées contre l'injection de formules.
+
 ## En production
 
 | Élément | Adresse |

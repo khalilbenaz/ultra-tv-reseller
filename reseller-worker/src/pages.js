@@ -34,6 +34,11 @@ tr:last-child td{border-bottom:0}.mono{font-family:ui-monospace,monospace}.muted
 .center{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px}.center .card{width:100%;max-width:400px}
 .center form{display:flex;flex-direction:column;gap:12px}.agreement{max-height:52vh;overflow:auto;background:var(--bg);border-radius:12px;padding:4px 18px;border:1px solid var(--line)}
 .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.check{display:flex;flex-direction:row;align-items:center;gap:8px;min-height:42px;color:var(--text);font-size:14px;font-weight:600;cursor:pointer}
+.check input{width:18px;height:18px;margin:0;accent-color:var(--accent)}form.inline .check{align-self:flex-end}
+.acts{display:flex;flex-direction:column;gap:2px;padding:6px 18px}.act{display:grid;grid-template-columns:minmax(220px,auto) 1fr;gap:16px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.act:last-child{border-bottom:0}.act form{margin:0}.act button{width:100%}.act .muted{font-size:13px}
+@media (max-width:640px){.act{grid-template-columns:1fr;gap:6px}}
 `;
 
 function page(n, title, body, { me = null, nav = "", flash = null } = {}) {
@@ -105,7 +110,7 @@ export function agreementPage(n, me) {
   <h2>8. Changes</h2><p>New versions of this agreement will be presented in the panel and must be accepted to continue activating devices.</p>
   </div>
   <form method="post" action="/agreement" class="row" style="margin-top:16px">${csrf(me)}
-  <label class="row" style="flex-direction:row;color:var(--text)"><input type="checkbox" name="accept" value="1" required> I have read and accept this agreement, and I confirm that the content I distribute is properly licensed.</label>
+  <label class="check" style="flex:1"><input type="checkbox" name="accept" value="1" required> I have read and accept this agreement, and I confirm that the content I distribute is properly licensed.</label>
   <button>Accept</button></form>`, { me });
 }
 
@@ -213,7 +218,8 @@ export function adminPage(n, me, { resellers, flash, created }) {
   ${created ? `<div class="card" style="margin-bottom:16px"><b>Compte créé : ${esc(created.login)}</b><p>Mot de passe provisoire (affiché une seule fois, à transmettre au revendeur ; il devra le changer) :</p><span class="secret">${esc(created.password)}</span></div>` : ""}
   <form method="post" action="/admin/resellers" class="card inline">${csrf(me)}
   <label>Identifiant<input name="login" pattern="[a-z0-9][a-z0-9._\\-]{2,31}" required placeholder="basil"></label><label>Nom affiché<input name="name" required maxlength="60" placeholder="Basil TV"></label>
-  <label class="row" style="flex-direction:row;align-items:center;color:var(--text)"><input type="checkbox" name="distributor" value="1"> Distributeur (peut créer des sous-revendeurs)</label><button>Créer le revendeur</button></form>
+  <label class="check"><input type="checkbox" name="distributor" value="1"> Distributeur</label><button>Créer le revendeur</button></form>
+  <p class="muted" style="font-size:13px;margin:6px 2px 0">Un distributeur peut créer ses propres sous-revendeurs et leur transférer des crédits.</p>
   <h2>Liste</h2>${resellers.length ? `<table><tr><th>Revendeur</th><th>Type</th><th>Statut</th><th>Crédits</th><th>Clients</th><th>Contrat</th><th></th></tr>${resellers.filter((r) => r.role === "reseller").map((r) => `<tr>
   <td><b>${esc(r.name)}</b><div class="muted mono">${esc(r.login)}</div></td>
   <td>${r.is_distributor === 1 ? `<span class="pill active">distributeur</span> <span class="muted">${r.subs} sous-rev.</span>` : r.parent_id ? `<span class="muted">sous-revendeur de ${esc(r.parent_name || "?")}</span>` : "revendeur"}</td><td><span class="pill ${r.status === "active" ? "active" : "suspended"}">${esc(r.status)}</span></td>
@@ -229,10 +235,13 @@ export function adminResellerPage(n, me, { r, bal, entries, flash, password }) {
   ${password ? `<div class="card" style="margin-bottom:16px"><b>Nouveau mot de passe provisoire</b> (affiché une seule fois) : <span class="secret">${esc(password)}</span></div>` : ""}
   <h2>Crédits</h2><form method="post" action="${base}/credits" class="card inline">${csrf(me)}
   <label>Nombre (négatif = correction)<input name="amount" type="number" required step="1"></label><label>Note (référence du paiement)<input name="note" maxlength="200"></label><button>Enregistrer</button></form>
-  <h2>Compte</h2><div class="row">
-  <form method="post" action="${base}/status">${csrf(me)}<input type="hidden" name="status" value="${r.status === "active" ? "suspended" : "active"}"><button class="${r.status === "active" ? "danger" : ""}">${r.status === "active" ? "Suspendre (accès au panneau et nouvelles activations ; ses clients gardent leur licence jusqu'à expiration)" : "Réactiver"}</button></form>
-  <form method="post" action="${base}/reset-password">${csrf(me)}<button class="ghost">Réinitialiser le mot de passe</button></form>
-  ${r.parent_id ? "" : `<form method="post" action="${base}/distributor">${csrf(me)}<input type="hidden" name="on" value="${r.is_distributor === 1 ? "0" : "1"}"><button class="ghost">${r.is_distributor === 1 ? "Retirer le statut distributeur" : "Faire de lui un distributeur"}</button></form>`}</div>
+  <h2>Compte</h2><div class="card acts">
+  <div class="act"><form method="post" action="${base}/status">${csrf(me)}<input type="hidden" name="status" value="${r.status === "active" ? "suspended" : "active"}"><button class="${r.status === "active" ? "danger" : ""}">${r.status === "active" ? "Suspendre" : "Réactiver"}</button></form>
+    <span class="muted">${r.status === "active" ? "Bloque son accès au panneau et ses nouvelles activations. Ses clients gardent leur licence jusqu'à expiration." : "Rend l'accès au panneau et les activations."}</span></div>
+  <div class="act"><form method="post" action="${base}/reset-password">${csrf(me)}<button class="ghost">Réinitialiser le mot de passe</button></form>
+    <span class="muted">Génère un mot de passe provisoire (affiché une fois) ; il devra en choisir un nouveau.</span></div>
+  ${r.parent_id ? "" : `<div class="act"><form method="post" action="${base}/distributor">${csrf(me)}<input type="hidden" name="on" value="${r.is_distributor === 1 ? "0" : "1"}"><button class="ghost">${r.is_distributor === 1 ? "Retirer distributeur" : "Passer distributeur"}</button></form>
+    <span class="muted">${r.is_distributor === 1 ? "Impossible tant qu'il a des sous-revendeurs." : "Il pourra créer des sous-revendeurs et leur transférer des crédits (menu Network)."}</span></div>`}</div>
   <h2>Grand livre</h2>${entries.length ? `<table><tr><th>Date</th><th>Mouvement</th><th>Motif</th><th>Note</th><th>Par</th></tr>${entries.map((e) => `<tr><td>${fmtDateTime(e.created_at)}</td>
   <td><b>${e.delta > 0 ? "+" : ""}${e.delta}</b></td><td>${esc(e.reason)}</td><td class="mono">${esc(e.note || "")}</td><td>${esc(e.created_by)}</td></tr>`).join("")}</table>` : `<p class="muted">Aucun mouvement.</p>`}`,
   { me, nav: "admin", flash });
@@ -277,9 +286,11 @@ export function subResellerPage(n, me, { r, bal, myBal, entries, flash, password
   <h2>Credits</h2><div class="grid">
   <form method="post" action="${base}/transfer" class="card inline">${csrf(me)}<label>Give credits (your balance: ${myBal})<input name="amount" type="number" min="1" step="1" required></label><button>Transfer</button></form>
   <form method="post" action="${base}/reclaim" class="card inline">${csrf(me)}<label>Take back unused credits<input name="amount" type="number" min="1" step="1" required></label><button class="ghost">Take back</button></form></div>
-  <h2>Account</h2><div class="row">
-  <form method="post" action="${base}/status">${csrf(me)}<input type="hidden" name="status" value="${r.status === "active" ? "suspended" : "active"}"><button class="${r.status === "active" ? "danger" : ""}">${r.status === "active" ? "Suspend (blocks their panel access and new activations; their customers keep their license until it expires)" : "Reactivate"}</button></form>
-  <form method="post" action="${base}/reset-password">${csrf(me)}<button class="ghost">Reset password</button></form></div>
+  <h2>Account</h2><div class="card acts">
+  <div class="act"><form method="post" action="${base}/status">${csrf(me)}<input type="hidden" name="status" value="${r.status === "active" ? "suspended" : "active"}"><button class="${r.status === "active" ? "danger" : ""}">${r.status === "active" ? "Suspend" : "Reactivate"}</button></form>
+    <span class="muted">${r.status === "active" ? "Blocks their panel access and new activations. Their customers keep their license until it expires." : "Restores panel access and activations."}</span></div>
+  <div class="act"><form method="post" action="${base}/reset-password">${csrf(me)}<button class="ghost">Reset password</button></form>
+    <span class="muted">Creates a temporary password (shown once); they will choose a new one.</span></div></div>
   <h2>Credit history</h2>${entries.length ? `<table><tr><th>Date</th><th>Change</th><th>Reason</th><th>By</th></tr>${entries.map((e) => `<tr><td>${new Date(e.created_at).toISOString().slice(0, 16).replace("T", " ")}</td>
   <td><b>${e.delta > 0 ? "+" : ""}${e.delta}</b></td><td>${esc(e.reason)}</td><td>${esc(e.created_by)}</td></tr>`).join("")}</table>` : `<p class="muted">No movement.</p>`}`,
   { me, nav: "network", flash });
