@@ -8,7 +8,7 @@ compatibility_date = "2025-09-01"
 [[d1_databases]]
 binding = "RESELLER"
 database_name = "ultratv-reseller"
-database_id = "00000000-0000-0000-0000-000000000000"
+database_id = "1fd63605-7da8-4fee-87f2-9fa8d23f7c27"
 migrations_dir = "migrations"
 
 # Limites de débit (même classe que le Worker public, instances séparées).

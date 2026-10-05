@@ -3,8 +3,8 @@
 // Stockage D1 (binding RESELLER) : il faut des requêtes et des transactions (débit de crédit atomique).
 // Le statut renvoyé à l'app est SIGNÉ (Ed25519) pour pouvoir être vérifié hors ligne.
 
-import { b64uEncode, randomToken, sha256Hex } from "../../cloudflare-config/src/crypto.js";
-import { sanitizeText } from "../../cloudflare-config/src/sanitize.js";
+import { b64uEncode, randomToken, sha256Hex } from "./lib/crypto.js";
+import { sanitizeText } from "./lib/sanitize.js";
 
 export const TRIAL_MS = 7 * 24 * 3600_000;
 export const GRACE_MS = 3 * 24 * 3600_000;

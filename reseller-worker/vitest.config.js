@@ -12,7 +12,7 @@ export default defineConfig(async () => {
     plugins: [
       cloudflareTest({
         wrangler: { configPath: "./wrangler.toml" },
-        miniflare: { bindings: { LICENSE_SIGNING_KEY: TEST_SIGNING_KEY, TEST_PUBLIC_KEY, TEST_MIGRATIONS: migrations } },
+        miniflare: { bindings: { LICENSE_SIGNING_KEY: TEST_SIGNING_KEY, SESSION_SECRET: "test-session-secret-0123456789abcdef0123456789", TEST_PUBLIC_KEY, TEST_MIGRATIONS: migrations } },
       }),
     ],
     test: { include: ["test/**/*.test.js"], setupFiles: ["./test/apply-migrations.js"], testTimeout: 30000 },
