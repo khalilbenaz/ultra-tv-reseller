@@ -1,0 +1,24 @@
+name = "ultratv-reseller"
+main = "src/index.js"
+compatibility_date = "2025-09-01"
+
+# Base D1 du programme revendeur (revendeurs, crédits, clients, licences, appareils, annonces).
+#   wrangler d1 create ultratv-reseller   → remplacer database_id ci-dessous
+#   wrangler d1 migrations apply ultratv-reseller --remote
+[[d1_databases]]
+binding = "RESELLER"
+database_name = "ultratv-reseller"
+database_id = "00000000-0000-0000-0000-000000000000"
+migrations_dir = "migrations"
+
+# Limites de débit (même classe que le Worker public, instances séparées).
+[[durable_objects.bindings]]
+name = "GUARD"
+class_name = "Guard"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Guard"]
+
+# SECRETS (jamais dans ce fichier) — `wrangler secret put <NOM>` :
+#   LICENSE_SIGNING_KEY   clé privée Ed25519 PKCS#8 en base64 (la clé publique est embarquée dans l'app revendeur)

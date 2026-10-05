@@ -29,8 +29,12 @@ revendeur l'installeront à la place : ses crédits ne valent rien.
 
 ## 3. Architecture
 
-Tout s'appuie sur l'existant : Worker Cloudflare `ultratv-config`, KV `CONFIG`, Durable Object `GUARD`, appairage,
-chiffrement AES des données, tableau de bord web.
+**Worker séparé `ultratv-reseller`** (dossier `reseller-worker/`, décision du 2026-10-05) : sa propre base D1, ses propres
+secrets et sa propre adresse. Le Worker public `ultratv-config` n'est pas modifié. Raisons : isolation des pannes et du
+périmètre juridique ; déplaçable tel quel vers un compte Cloudflare séparé (société dédiée) sans changer le code.
+L'app revendeur appelle `ultratv-reseller` pour la licence et les annonces, et `ultratv-config` pour les fonctions cloud
+existantes (appairage, sources, favoris). Les briques communes (chiffrement, nettoyage, HTTP, `Guard`) sont importées
+depuis `cloudflare-config/src`.
 
 ### 3.1 Stockage
 
@@ -123,7 +127,7 @@ CREATE TABLE message_read (message_id TEXT, device_id TEXT, read_at INTEGER, PRI
 | Étape | Contenu | Estimation |
 |---|---|---|
 | 0 | Décision §2, contrat revendeur relu par un juriste, grille de prix | — (toi) |
-| 1 | D1 + schéma + API `register` / `status` signé + tests | 3–4 jours |
+| 1 ✅ | D1 + schéma + API `register` / `status` signé + tests (16) — `reseller-worker/` | fait le 2026-10-05 |
 | 2 | Panneau : admin crédits, activation, clients, renouvellement, suspension | 5–6 jours |
 | 3 | App : écran d'activation, contrôle hors ligne, expiration (Android + bureau) | 4–5 jours |
 | 4 | Annonces : panneau + boîte de réception dans l'app | 3–4 jours |
@@ -133,7 +137,7 @@ CREATE TABLE message_read (message_id TEXT, device_id TEXT, read_at INTEGER, PRI
 ## 6. Questions ouvertes
 
 - ~~Option §2~~ → **A retenue** : variante de build « revendeur » (Android `productFlavor` + build bureau séparé), l'app publique reste gratuite et inchangée.
-- Durée d'essai (7 jours ?) et délai de grâce hors ligne (3 jours ?).
+- Durée d'essai et délai de grâce hors ligne : **7 jours / 3 jours par défaut** (`TRIAL_MS`, `GRACE_MS` dans `reseller-worker/src/license.js`).
 - Changement de box : détachement libre par le revendeur, ou limité (ex. 2 par an) ?
 - Remboursement d'un crédit si activation annulée sous 48 h ?
 - Marque blanche : nom/logo/couleurs par revendeur — dans le pilote ou après ?
