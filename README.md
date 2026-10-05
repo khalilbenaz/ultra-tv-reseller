@@ -222,8 +222,9 @@ Statuts : `trial`, `active`, `expired`, `suspended`. Détails : [`reseller-worke
    git tag pro-vX.Y.Z && git push reseller pro-vX.Y.Z
    ```
    Le workflow **Pro release** construit Android (APK par ABI signés avec la clé Pro, vérification anti-clé de débogage)
-   et le bureau (macOS universel, Windows x64, Linux x64), et dépose les fichiers en artefacts.
-3. Publier dans le dépôt de distribution (sommes SHA-256 vérifiées, release `vX.Y.Z` marquée « latest ») :
+   et le bureau (macOS universel, Windows x64, Linux x64), puis crée la **release `pro-vX.Y.Z` de ce dépôt privé**
+   avec tous les fichiers (archive interne, téléchargeable par toi seulement).
+3. Publier pour les clients dans le dépôt de distribution **public** (les releases d'un dépôt privé ne leur sont pas accessibles) (sommes SHA-256 vérifiées, release `vX.Y.Z` marquée « latest ») :
    ```bash
    bash scripts/publish-pro.sh <id du run>
    ```
