@@ -1,229 +1,153 @@
-<p align="center">
-  <img src="docs/screenshots/fr/banner.png" alt="Ultra TV" width="100%" />
-</p>
+# Ultra TV Pro — programme revendeur (dépôt privé)
 
-<h1 align="center">Ultra TV</h1>
+> Dépôt **privé**. L'application publique et gratuite vit dans [`khalilbenaz/ultra-tv`](https://github.com/khalilbenaz/ultra-tv) ;
+> ce dépôt en est une copie enrichie de l'**édition Pro** (licences vendues par des revendeurs) et du **Worker revendeur**.
+> Rien d'ici ne doit partir vers le dépôt public (voir [Garde-fous](#garde-fous)).
 
-<p align="center">
-  <strong>Lecteur IPTV natif pour Android TV et Google TV.</strong><br/>
-  Kotlin · Compose for TV · Media3 (ExoPlayer) + LibVLC · Room · Hilt
-</p>
+## En bref
 
-<p align="center">
-  <a href="https://github.com/khalilbenaz/ultra-tv/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/khalilbenaz/ultra-tv/actions/workflows/ci.yml/badge.svg" /></a>
-  <a href="https://github.com/khalilbenaz/ultra-tv/releases/latest"><img alt="Release" src="https://img.shields.io/github/v/release/khalilbenaz/ultra-tv?label=release" /></a>
-  <a href="LICENSE"><img alt="Licence MIT" src="https://img.shields.io/badge/licence-MIT-0284c7" /></a>
-  <a href="https://khalilbenaz.github.io/ultra-tv/"><img alt="Site" src="https://img.shields.io/badge/site-GitHub%20Pages-d91e2b" /></a>
-</p>
+Ultra TV Pro est **le même lecteur** qu'Ultra TV, avec une couche de licence :
 
-<p align="center">
-  <a href="README.en.md">🇬🇧 English version</a> ·
-  <a href="https://khalilbenaz.github.io/ultra-tv/">Site</a> ·
-  <a href="https://github.com/khalilbenaz/ultra-tv/releases/latest/download/UltraTV-debug.apk">Télécharger l'APK</a> ·
-  <a href="https://github.com/khalilbenaz/ultra-tv/releases">Releases</a> ·
-  <a href="CHANGELOG.md">Changelog</a>
-</p>
+- au premier lancement, l'application affiche un **code appareil** (ex. `7F3K-92QD`) et démarre un **essai de 7 jours** ;
+- le revendeur active ce code depuis son **panneau** : **1 crédit = 1 client, 1 an, 2 appareils** ;
+- à l'expiration ou en cas de suspension, l'application se bloque et affiche le **contact du revendeur** ;
+- le revendeur envoie des **annonces** à ses clients (affichées à l'ouverture de l'application).
 
----
+**Modèle économique** : crédits **prépayés** vendus au revendeur, prix fixe, pas de partage de revenus. Ultra TV Pro ne
+fournit, n'héberge et ne vend **aucun contenu** ; chaque revendeur accepte un **contrat** (contenu sous licence) avant sa
+première activation.
 
-Ultra TV lit vos propres abonnements IPTV (**Xtream Codes**, **M3U / M3U8** en lien ou en fichier). Toute l'interface est native et pilotée à la télécommande ; le catalogue (chaînes, films, séries, guide, historique, favoris) vit dans une base Room locale. Il ne fournit **aucun contenu**.
+## En production
 
-> Les captures ci-dessous utilisent exclusivement des **données synthétiques** (faux serveur Xtream local, `android-native/tools/fake-xtream`).
-
-<p align="center">
-  <img src="docs/screenshots/fr/home.png" alt="Accueil" width="48%" />
-  <img src="docs/screenshots/fr/live.png" alt="Direct" width="48%" />
-  <img src="docs/screenshots/fr/guide.png" alt="Guide des programmes" width="48%" />
-  <img src="docs/screenshots/fr/detail.png" alt="Fiche film" width="48%" />
-  <img src="docs/screenshots/fr/player.png" alt="Lecteur" width="48%" />
-  <img src="docs/screenshots/fr/settings.png" alt="Réglages" width="48%" />
-  <img src="docs/screenshots/fr/profiles.png" alt="Qui regarde ?" width="48%" />
-  <img src="docs/screenshots/fr/languages.png" alt="Réglages, panneau Langues" width="48%" />
-</p>
-
-Captures aussi disponibles en anglais ([`docs/screenshots/en`](docs/screenshots/en)) et en arabe, interface en miroir ([`docs/screenshots/ar`](docs/screenshots/ar)).
-
-## Fonctionnalités
-
-- **Recherche** depuis n'importe quel écran : bouton en haut du menu latéral, touches Recherche et micro de la télécommande.
-- **Direct** : Haut/Bas zappent, **OK ouvre la liste des chaînes**, touches chaîne +/− et TV des télécommandes Google TV ; bandeau chaîne et programme ; zapping par numéro, retour à la chaîne précédente, 20 chaînes récentes, recherche instantanée (FTS).
-- **Catégories** : noms et ordre de la playlist tels que fournis par la source, activer / désactiver / réordonner, filtre texte (« FR » = mot entier) ; pastilles de qualité (SD, HD, FHD, 4K, RAW, HEVC…) pour distinguer les flux d'une même chaîne.
-- **Guide** : grille horaire, rappels, enregistrements programmés, **replay** (catch-up Xtream) depuis le guide quand la source le permet. Programme repris d'une chaîne du même nom quand le fournisseur n'en donne qu'à une catégorie (HEVC, Général…), chaînes « +1 / +2 » décalées d'autant, programme court du fournisseur en secours, et **guide complémentaire gratuit** (XMLTV France par défaut, epgshare01 beIN Sports / Arabie saoudite / Émirats) pour les chaînes restées sans programme.
-- **Pause du direct** (timeshift) : tampon disque circulaire pour les flux MPEG-TS.
-- **Films et séries** : fiches enrichies via **TMDB** (affiche, synopsis, distribution), **reprise automatique** (position enregistrée toutes les 30 s), saisons en onglets, rangées par catégorie.
-- **Deux moteurs de lecture** : ExoPlayer (Media3) et **LibVLC**, choix Auto / ExoPlayer / VLC, décodage Auto / Matériel / Logiciel, repli automatique et mémorisation par chaîne.
-- **Sous-titres** : recherche en ligne (OpenSubtitles via le Worker), style avancé (taille, couleur, fond, contour, position, décalage).
-- **Profils** : « Qui regarde ? », profil Enfants, favoris, historique et langues par profil.
-- **Abonnement** (menu) : état de votre abonnement IPTV tel que l'indique le fournisseur — statut, date d'expiration et jours restants, connexions utilisées / autorisées, compte d'essai, serveur. Android, Windows et macOS.
-- **Google TV** : « Continuer à regarder » (films, épisodes et dernières chaînes du direct), chaîne d'accueil Ultra TV (favoris puis dernières chaînes), recherche vocale et globale, liens profonds `ultratv://`.
-- **Lecture** : pas de mise en veille pendant un film ou le direct, pause en quittant l'application (plus de son en arrière-plan) ; horloge sans décalage et fuseau horaire réglable (Réglages › Affichage).
-- **Thèmes** Sombre / Clair / Automatique (le lecteur reste toujours sombre) ; interface en anglais, français, espagnol et arabe (RTL).
-- **Veille** : minuterie 30 / 60 / 90 min ou fin de programme ; mise à jour intégrée depuis les releases GitHub.
-
-## Appareils
-
-Un seul compte, tous vos écrans : même interface, même fournisseur partout. Ajoutez-le une fois dans le [tableau de bord cloud](#synchronisation-cloud) et chaque appareil le reçoit.
-
-### Android TV et Google TV
-
-L'application d'origine, pilotée à la télécommande (voir les captures ci-dessus et [Fonctionnalités](#fonctionnalités)).
-
-### Smartphone Android
-
-Interface tactile : barre de navigation en bas, listes et grilles au doigt, lecteur à gestes avec image dans l'image ; les formulaires se calent au-dessus du clavier.
-
-<p align="center">
-  <img src="docs/screenshots/phone/fr/home.png" alt="Accueil sur smartphone" width="23%" />
-  <img src="docs/screenshots/phone/fr/live.png" alt="Direct sur smartphone" width="23%" />
-  <img src="docs/screenshots/phone/fr/detail.png" alt="Fiche film sur smartphone" width="23%" />
-  <img src="docs/screenshots/phone/fr/player.png" alt="Lecteur sur smartphone" width="23%" />
-</p>
-
-### Tablette Android
-
-Menu latéral, liste et fiche côte à côte.
-
-<p align="center">
-  <img src="docs/screenshots/tablet/fr/live.png" alt="Direct sur tablette" width="48%" />
-  <img src="docs/screenshots/tablet/fr/home.png" alt="Accueil sur tablette" width="48%" />
-</p>
-
-### Windows et macOS
-
-Le même design sur ordinateur : l'application web de [`web/`](web/README.md) empaquetée par Electron ([`electron/`](electron/README.md)), utilisable aussi dans un navigateur. Xtream Codes et M3U (lien ou fichier) ; catalogue gardé en local (IndexedDB), identifiants chiffrés avec le trousseau du système, lecture directe (aucun proxy distant), mise à jour automatique via les Releases GitHub. **Recherche** : bouton rond sous le logo, raccourci `Ctrl/Cmd + K` ou `/` depuis n'importe quel écran.
-
-<p align="center">
-  <img src="docs/screenshots/desktop/fr/06-direct.png" alt="Direct sur le bureau" width="48%" />
-  <img src="docs/screenshots/desktop/fr/14-reglages.png" alt="Réglages sur le bureau" width="48%" />
-</p>
-
-Toutes les captures du bureau (données synthétiques, FR et EN) : [`docs/screenshots/desktop/`](docs/screenshots/desktop/). Publication : tag `desktop-vX.Y.Z` (workflow `desktop-release.yml`, séparé des tags Android `v*`).
-
-### Tableau de bord cloud
-
-Gérez appareils et sources depuis un navigateur : **<https://ultratv-config.khalilbenaz.workers.dev>**.
-
-<p align="center">
-  <img src="docs/screenshots/cloud/devices.png" alt="Appareils appairés" width="48%" />
-  <img src="docs/screenshots/cloud/sharing.png" alt="Partage des sources par appareil" width="48%" />
-</p>
-
-Chaque source a un bouton **Afficher le lien IPTV** (lien M3U complet, à la demande, avec bouton Copier).
-
-Appairage en un scan : la TV affiche un QR, l'appareil photo du téléphone ouvre la page d'appairage avec le code déjà rempli. Le code se saisit aussi à la main, avec ou sans tiret.
-
-<p align="center">
-  <img src="docs/screenshots/cloud/pair-qr.png" alt="Confirmation d'appairage avec le code pré-rempli" width="30%" />
-  <img src="docs/screenshots/cloud/mobile.png" alt="Tableau de bord sur téléphone, thème clair" width="30%" />
-</p>
-
-### Synchronisation multi-appareils
-
-- **Même fournisseur partout** : un fournisseur ajouté dans le tableau de bord est reçu par tous les appareils du compte.
-- **Source propre à un appareil** : une source ajoutée sur un appareil lui reste privée tant que vous ne la partagez pas.
-- **Partage choisi par appareil** : source par source, vous cochez les appareils destinataires (dans l'application : Réglages › Sources › *Partager cette source* ; ou dans le tableau de bord).
-- **Catégories partagées** : activer, désactiver une catégorie sur un appareil s'applique aux autres (la modification la plus récente gagne).
-- **Favoris, reprises et derniers vus partagés** : un film commencé sur la TV reprend au même endroit sur le Mac ; un favori ajouté ou retiré l'est partout. Par source du compte, profils rapprochés par leur nom.
-- Les modifications d'un compte sont sérialisées côté Worker (verrou Durable Object) : deux appareils qui écrivent en même temps ne s'écrasent pas.
-
-## Téléchargements
-
-| Appareil | Fichier |
+| Élément | Adresse |
 |---|---|
-| Android (TV, smartphone, tablette) | [`UltraTV-debug.apk`](https://github.com/khalilbenaz/ultra-tv/releases/latest/download/UltraTV-debug.apk) universel, ou un APK par processeur `UltraTV-<version>-<abi>.apk` (`arm64-v8a`, `armeabi-v7a`, `x86_64`), plus `SHA256SUMS.txt` |
-| macOS | `UltraTV-<version>-mac-universal.dmg` (Apple Silicon et Intel) |
-| Windows | `UltraTV-<version>-win-x64.exe` (installeur NSIS) |
-| Tableau de bord cloud | <https://ultratv-config.khalilbenaz.workers.dev> (aucune installation) |
+| Panneau revendeur et administration | https://ultratv-reseller.khalilbenaz.workers.dev |
+| Page de téléchargement (clients) | https://ultratv-reseller.khalilbenaz.workers.dev/download |
+| Distribution des installateurs (public, sans code) | https://github.com/khalilbenaz/ultra-tv-pro/releases |
+| Worker cloud commun (appairage, sources, favoris) | https://ultratv-config.khalilbenaz.workers.dev (dépôt public) |
 
-Tout est sur la page [Releases](https://github.com/khalilbenaz/ultra-tv/releases) (les fichiers bureau portent les tags `desktop-v…`).
+## Architecture
 
-## Installation
-
-Android 9 ou plus récent (API 28).
-
-**APK.** Téléchargez [`UltraTV-debug.apk`](https://github.com/khalilbenaz/ultra-tv/releases/latest/download/UltraTV-debug.apk) (somme SHA-256 sur la page de la release) et installez-le.
-
-**Downloader** (box sans navigateur) : ouvrez l'application [Downloader](https://www.aftvnews.com/downloader/), saisissez le code **`5248504`**, autorisez les sources inconnues, installez.
-
-**adb** :
-
-```bash
-adb connect IP_DE_LA_BOX:5555
-adb install -r UltraTV-debug.apk
+```
+ Ultra TV Pro (Android TV, Android, Windows, macOS, Linux)
+   │  licence, statut signé, annonces          │  appairage, sources, préférences, favoris
+   ▼                                           ▼
+ Worker ultratv-reseller  (CE dépôt)        Worker ultratv-config  (dépôt public, inchangé)
+   ├─ D1 « ultratv-reseller » : revendeurs, grand livre de crédits, clients, licences, appareils, annonces
+   ├─ Durable Object Guard : limites de débit
+   └─ Panneau HTML (revendeur en anglais, administration en français)
 ```
 
-Au premier lancement : choisissez le type de source (Xtream Codes, lien M3U, fichier M3U ou **Depuis le cloud**), saisissez-la, puis choisissez vos catégories (seules les catégories actives sont téléchargées).
+- **Worker indépendant** : son propre code (`reseller-worker/src/lib`), sa base, ses secrets, son adresse. Une panne ou une
+  suspension côté revendeurs ne touche jamais le service public ; il peut être déplacé tel quel vers un autre compte Cloudflare.
+- **Crédits** : jamais dépensés deux fois ni en négatif (lots D1 conditionnels, testés avec des activations simultanées).
+- **Statut de licence signé Ed25519** : l'application vérifie la signature avec la clé publique embarquée et accepte le
+  dernier statut **hors ligne** jusqu'à 3 jours après la fin (délai de grâce).
 
-Une adresse du type `…/get.php?username=…&password=…` collée comme lien M3U est reconnue et ajoutée comme source Xtream Codes (beaucoup de fournisseurs bloquent `get.php`).
+## Contenu du dépôt (spécifique à l'édition Pro)
 
-## Synchronisation cloud
+| Chemin | Rôle |
+|---|---|
+| [`reseller-worker/`](reseller-worker/) | Worker revendeur : API `/api/lic/*`, panneau, administration, `/download`, migrations D1, tests |
+| [`docs/reseller/PLAN.md`](docs/reseller/PLAN.md) | Conception, décisions, garde-fous juridiques, état d'avancement |
+| `web/src/edition.ts`, [`web/src/license/`](web/src/license/) | Bureau : édition (`VITE_EDITION=pro`), porte de licence, carte licence |
+| `web/src/screens/Account.tsx` | Menu « Abonnement » : compte IPTV (commun) + licence (Pro) |
+| [`electron/electron-builder.pro.cjs`](electron/electron-builder.pro.cjs) | Bureau Pro : `com.ultratv.pro`, dossier de données et mises à jour séparés |
+| `android-native/.../data/license/`, `.../ui/license/` | Android : client de licence, vérification Ed25519, écran d'activation, annonces, écran Abonnement |
+| `android-native/app/build.gradle.kts` | `-PULTRA_EDITION=pro` : `com.ultratv.pro`, « Ultra TV Pro », URL et clé publique de licence |
+| [`.github/workflows/pro-release.yml`](.github/workflows/pro-release.yml) | Build Pro sur tag `pro-vX.Y.Z` (APK signés clé Pro + installateurs bureau) |
+| [`scripts/publish-pro.sh`](scripts/publish-pro.sh) | Publie un build dans le dépôt de distribution `ultra-tv-pro` |
 
-Pour ne pas saisir d'identifiants à la télécommande, gérez vos sources depuis un navigateur : **<https://ultratv-config.khalilbenaz.workers.dev>** (l'adresse est aussi affichée, avec un QR code, dans l'application : Réglages › Sources).
+Tout le reste (lecteur, synchro, catalogue, lecteur vidéo…) est **identique à l'application publique** et se met à jour
+en fusionnant `main` (voir [Suivre l'application publique](#suivre-lapplication-publique)).
 
-1. Créez un compte sur le tableau de bord et ajoutez vos sources.
-2. Dans le tableau de bord, choisissez **Appairer une TV**.
-3. Sur la box : **Depuis le cloud** (écran Source de l'assistant) ou Réglages › Sources › *Synchroniser depuis le cloud*. Un code à 8 caractères s'affiche ; saisissez-le dans le tableau de bord.
-4. La box importe la configuration puis synchronise.
+## Panneau
 
-L'appareil reçoit un jeton aléatoire de 256 bits (haché côté serveur, chiffré dans le Keystore, révocable). Vos identifiants sont **chiffrés côté serveur** (AES-256-GCM). L'étiquette affichée pour la box (« UTV-XXXXXX ») n'est qu'un nom, jamais une clé.
+**Administrateur** (`admin`) :
+- créer un revendeur (mot de passe provisoire affiché une fois, changement imposé à la première connexion) ;
+- ajouter des crédits après paiement (négatif = correction, jamais en dessous de zéro), avec une note de référence ;
+- suspendre / réactiver un revendeur (coupe toutes ses licences), réinitialiser son mot de passe, consulter le grand livre.
 
-**Auto-hébergement.** Vous pouvez déployer votre propre Worker (voir [Worker Cloudflare](#worker-cloudflare)) : créez les espaces KV, définissez les secrets `SESSION_SECRET`, `PROVIDER_ENC_KEY` et `OPS_TOKEN` (aucune valeur n'est publiée), puis `wrangler deploy` ; dans l'application, Réglages › Sources › *Adresse du tableau de bord* pointe alors vers le vôtre.
+**Revendeur** :
+- accepter le contrat (obligatoire avant toute activation) ;
+- **activer** un code appareil (nouveau client : 1 crédit ; 2ᵉ appareil d'un client : gratuit) ;
+- clients : renouveler (+1 an depuis la fin actuelle, 1 crédit), suspendre / reprendre, détacher un appareil (changement de box), libellé et note ;
+- **annonces** à tous ses clients ou à un client, avec durée de visibilité et nombre de lectures ;
+- profil : nom affiché, WhatsApp, Telegram, texte de support (montrés dans l'application).
 
-## Sécurité
+## API appareil (application)
 
-- Identifiants des sources **chiffrés au repos** sur l'appareil ; sur le Worker, AES-256-GCM.
-- **Aucune URL de flux, aucun identifiant n'est affiché** ni journalisé ; les messages d'erreur sont filtrés (`UserText`). Un nom de source vide ne reprend pas l'adresse du serveur.
-- Aucun jeton partagé dans l'APK. Détails, modèle de menace et rotation des anciens secrets : [SECURITY.md](SECURITY.md).
+| Méthode | Route | Rôle |
+|---|---|---|
+| POST | `/api/lic/register` | Premier lancement → `{deviceId, code, installSecret, trialEndsAt}` (20 / h / IP) |
+| GET | `/api/lic/status?v=<version>` | `Bearer <installSecret>` → `{payload, sig}` signé Ed25519 |
+| GET | `/api/lic/inbox` | Annonces destinées à l'appareil |
+| POST | `/api/lic/inbox/read` | `{ids}` : marquer lues |
 
-## Réglages automatiques
+Statuts : `trial`, `active`, `expired`, `suspended`. Détails : [`reseller-worker/README.md`](reseller-worker/README.md).
 
-À la première ouverture, l'**`AdaptiveProfile`** mesure l'appareil (mémoire, tas, micro-benchmark) et le classe **Bas / Moyen / Haut**. Il en déduit tampon, parallélisme et taille des lots de synchro, plafond de résolution et de débit (box à peu de mémoire : 720p / 6 Mb/s) et ajuste le tampon si des coupures surviennent. Tout reste modifiable : Réglages › Lecture (moteur, décodage, préréglage de tampon : Faible latence, Auto, Équilibré, Stable, Personnalisé).
+## Construire et publier une version Pro
+
+1. Mettre à jour [`VERSION`](VERSION) (la version Pro suit celle de l'application publique).
+2. Pousser la branche puis le tag **vers le dépôt privé** :
+   ```bash
+   git push reseller reseller-pilot
+   git tag pro-vX.Y.Z && git push reseller pro-vX.Y.Z
+   ```
+   Le workflow **Pro release** construit Android (APK par ABI signés avec la clé Pro, vérification anti-clé de débogage)
+   et le bureau (macOS universel, Windows x64, Linux x64), et dépose les fichiers en artefacts.
+3. Publier dans le dépôt de distribution (sommes SHA-256 vérifiées, release `vX.Y.Z` marquée « latest ») :
+   ```bash
+   bash scripts/publish-pro.sh <id du run>
+   ```
+4. Les applications installées trouvent la mise à jour d'elles-mêmes (bureau : releases `vX.Y.Z` d'`ultra-tv-pro` ;
+   Android : fichiers `UltraTVPro-<version>-<abi>.apk` + `SHA256SUMS.txt`).
+
+**Worker** : `cd reseller-worker && npm test && npx wrangler deploy` ; nouvelles migrations :
+`npx wrangler d1 migrations apply ultratv-reseller --remote`.
+
+## Clés et secrets
+
+| Secret | Où | Usage |
+|---|---|---|
+| `LICENSE_SIGNING_KEY` | secret Wrangler (`ultratv-reseller`) | Signe les statuts de licence (Ed25519) |
+| `SESSION_SECRET` | secret Wrangler | Sessions du panneau |
+| `PRO_KEYSTORE_BASE64`, `PRO_KEYSTORE_PASSWORD`, `PRO_KEY_ALIAS` | secrets GitHub de ce dépôt | Signature des APK Pro |
+| Copies locales | `~/.config/ultra-tv-pro/` (jamais dans le dépôt) | Clé de signature, keystore Android Pro, mot de passe admin initial |
+
+⚠️ **Sauvegarder `~/.config/ultra-tv-pro/`** : sans le keystore, impossible de publier une mise à jour Android installable
+par-dessus ; sans la clé de signature, il faut republier les applications avec une nouvelle clé publique.
+La clé **publique** de licence est dans [`reseller-worker/keys/license-public.b64`](reseller-worker/keys/license-public.b64)
+et embarquée dans les applications.
+
+## Suivre l'application publique
+
+Les correctifs et nouveautés de l'application publique arrivent par fusion de `main` :
+
+```bash
+git checkout main && git pull origin main
+git checkout reseller-pilot && git merge main
+```
+
+En cas de conflit, garder la version Pro des fichiers propres à l'édition Pro (tableau ci-dessus) et la version publique
+pour le reste. Après `git checkout main`, supprimer le dossier `reseller-worker/` resté sur le disque (non suivi sur `main`)
+pour ne jamais l'ajouter par erreur au dépôt public.
+
+## Garde-fous
+
+- **Hook local `pre-push`** (dans `.git/hooks`, non versionné) : refuse d'envoyer une branche `reseller*` ou un tag
+  `pro-v*` ailleurs que vers ce dépôt privé.
+- Actions GitHub : seul **Pro release** est utile ici ; les workflows publics ne se déclenchent que sur `main`.
+- **Juridique** (voir [PLAN.md §4](docs/reseller/PLAN.md)) : contrat revendeur accepté avant activation, aucun contenu ni
+  liste préchargée, pas de sources poussées par le revendeur, facturation de licences logicielles uniquement, suspension en
+  un clic, données personnelles minimales. Le texte du contrat (page `/agreement`) est à faire relire par un juriste.
 
 ## Développement
 
-JDK 17 requis.
-
 ```bash
-git clone https://github.com/khalilbenaz/ultra-tv && cd ultra-tv/android-native
-export JAVA_HOME=$(/usr/libexec/java_home -v 17)   # macOS
-./gradlew assembleDebug                            # APK universel
-./gradlew testDebugUnitTest                        # tests unitaires (JUnit, Robolectric)
-./gradlew assembleRelease                          # APK par ABI (arm64-v8a, armeabi-v7a, x86_64)
+cd reseller-worker && npm ci && npm test          # Worker : 43 tests (D1 et Durable Object simulés)
+cd web && npm ci && npm test                      # bureau / web (dont logique de licence)
+cd web && VITE_EDITION=pro npm run build          # web en édition Pro
+cd electron && npm ci && npm test && npm run package:pro:win   # installateur Windows Pro local
+cd android-native && ./gradlew testDebugUnitTest assembleRelease -PULTRA_EDITION=pro   # (SDK Android requis)
 ```
-
-- La version vient du fichier [`VERSION`](VERSION) ; `versionCode = major×10000 + minor×100 + patch` (1.2.0 → 10200).
-- **Faux serveur Xtream** pour tester sans abonnement : `python3 android-native/tools/fake-xtream/server.py` (l'émulateur y accède via `http://10.0.2.2:8099`, identifiants `test` / `test`).
-- Build debug : intents de débogage (`debug_route`, `debug_theme`, `debug_engine`, `debug_decoder`, `debug_buffer`…) pour les captures et les mesures.
-- **CI** ([ci.yml](.github/workflows/ci.yml)) : web (tsc + vitest), Android (compilation + tests unitaires), Worker. Publication : [release.yml](.github/workflows/release.yml) sur tag `v*` (APK universel `UltraTV-debug.apk`, APK par processeur `UltraTV-<version>-<abi>.apk` et `SHA256SUMS.txt`) ; site : [pages.yml](.github/workflows/pages.yml).
-
-## Worker Cloudflare
-
-`cloudflare-config/` : tableau de bord d'appairage, stockage chiffré des sources, ingestion des crashs, proxies TMDB et OpenSubtitles. Procédure complète : [cloudflare-config/README.md](cloudflare-config/README.md).
-
-```bash
-cd cloudflare-config && npm ci
-wrangler kv namespace create CONFIG                # coller les ids dans wrangler.toml
-wrangler secret put SESSION_SECRET                 # >= 32 caractères aléatoires
-wrangler secret put PROVIDER_ENC_KEY               # clé AES-256 en base64
-wrangler secret put OPS_TOKEN                      # mot de passe de /crashes et /logs
-wrangler secret put TMDB_READ_TOKEN                # jeton de lecture TMDB v4 (fiches enrichies)
-wrangler secret put TMDB_API_KEY                   # clé TMDB v3 (repli si pas de jeton v4)
-wrangler secret put OPENSUBTITLES_API_KEY          # clé OpenSubtitles (sous-titres en ligne)
-npm test && wrangler deploy --dry-run
-```
-
-TMDB et OpenSubtitles sont facultatifs : sans leurs secrets, l'application masque les fonctions correspondantes. Pour un fork, compilez avec `-PULTRA_WORKER_URL=https://votre-worker.workers.dev`.
-
-## Limites connues
-
-- Le **replay** et la **pause du direct** dépendent de la source (catch-up Xtream, flux MPEG-TS) ; indisponibles sinon.
-- Les fiches TMDB et les sous-titres en ligne exigent un Worker configuré avec les secrets ci-dessus.
-- Un épisode commencé sur la TV apparaît dans « Reprendre » sur l'ordinateur une fois la série ouverte au moins une fois sur celui-ci.
-- Aucun guide gratuit ne couvre les chaînes marocaines (2M, Al Aoula…) : seul le guide du fournisseur les renseigne.
-- La première synchro d'un très gros catalogue (≈ 55 000 chaînes) prend environ une minute sur un appareil de milieu de gamme et davantage sur un modèle d'entrée de gamme.
-- L'APK grossit avec LibVLC (≈ 53 Mo en arm64-v8a, contre ≈ 9 Mo en 1.0.x).
-- Les mesures publiées dans les notes de version viennent d'émulateurs Android TV (rendu logiciel) : à confirmer sur matériel réel.
-
-## Licence
-
-MIT, voir [LICENSE](LICENSE). Ultra TV est un client IPTV : utilisez uniquement des listes, guides et identifiants que vous avez le droit d'utiliser. Les polices Sora et Manrope sont sous licence OFL.
