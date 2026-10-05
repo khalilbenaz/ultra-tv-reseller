@@ -109,8 +109,12 @@ async function resellerRoute(env, me, path, m, form, url) {
   const db = env.RESELLER;
   const flash = flashOf(url);
   if (path === "/agreement") {
-    if (m === "POST") { if (form.get("accept") !== "1") return redirect("/agreement"); await P.acceptAgreement(db, me.id); return back("/", { ok: "Agreement accepted. You can now activate devices." }); }
-    return view(V.agreementPage, me, {});
+    if (m === "POST") {
+      if (form.get("accept") !== "1") return redirect("/agreement");
+      try { await P.acceptAgreement(db, me.id, Date.now(), form.get("signer") ?? ""); }
+      catch (e) { if (e instanceof P.PanelError) return view(V.agreementPage, me, { error: e.code }); throw e; }
+      return back("/", { ok: "Agreement accepted. You can now activate devices." }); }
+    return view(V.agreementPage, me, { error: null });
   }
   // Contrat pas encore accepté : le tableau de bord mène d'abord au contrat (il ne peut rien activer sans).
   if (path === "/" && m === "GET" && !me.agreement_signed_at) return redirect("/agreement");
@@ -188,7 +192,7 @@ async function networkRoute(env, me, path, m, form, url) {
       try {
         await P.createSubReseller(db, me.id, { login: form.get("login"), name: form.get("name"), passwordHash: await hashPassword(password) });
       } catch (e) { if (e instanceof P.PanelError) return back("/network", { e: e.code }); throw e; }
-      return view(V.networkPage, me, { stats: await P.networkStats(db, me.id), subs: await P.listSubResellers(db, me.id), created: { login: String(form.get("login")).trim().toLowerCase(), password } });
+      return view(V.networkPage, me, { stats: await P.networkStats(db, me.id), subs: await P.listSubResellers(db, me.id), origin: url.origin, created: { login: String(form.get("login")).trim().toLowerCase(), password }, origin: url.origin });
     }
     return view(V.networkPage, me, { stats: await P.networkStats(db, me.id), subs: await P.listSubResellers(db, me.id), flash });
   }
@@ -198,7 +202,7 @@ async function networkRoute(env, me, path, m, form, url) {
   let r;
   try { r = await P.getSub(db, me.id, sid); } catch { return redirect("/network"); }
   const to = `/network/${sid}`;
-  const show = async (extra = {}) => view(V.subResellerPage, me, { r: await P.getReseller(db, sid), bal: await P.balance(db, sid), myBal: await P.balance(db, me.id), entries: await P.ledger(db, sid), stats: await P.dashboardStats(db, sid), myCap: await P.deviceCap(db, me.id), flash, ...extra });
+  const show = async (extra = {}) => view(V.subResellerPage, me, { r: await P.getReseller(db, sid), bal: await P.balance(db, sid), myBal: await P.balance(db, me.id), entries: await P.ledger(db, sid), stats: await P.dashboardStats(db, sid), myCap: await P.deviceCap(db, me.id), origin: url.origin, flash, ...extra });
   if (m === "GET" && !action) return show();
   if (m === "POST" && action === "transfer") return attempt(to, "Credits transferred.", () => P.transferCredits(db, me.id, sid, form.get("amount"), me.login));
   if (m === "POST" && action === "reclaim") return attempt(to, "Credits taken back.", () => P.reclaimCredits(db, me.id, sid, form.get("amount"), me.login));
@@ -232,7 +236,7 @@ async function adminRoute(env, me, path, m, form, url) {
     const r = await P.getReseller(db, rid);
     if (!r || r.role !== "reseller") return redirect("/admin");
     const to = `/admin/resellers/${rid}`;
-    const show = async (extra = {}) => view(V.adminResellerPage, me, { r: await P.getReseller(db, rid), bal: await P.balance(db, rid), entries: await P.ledger(db, rid), flash, ...extra });
+    const show = async (extra = {}) => view(V.adminResellerPage, me, { r: await P.getReseller(db, rid), bal: await P.balance(db, rid), entries: await P.ledger(db, rid), origin: url.origin, flash, ...extra });
     if (m === "GET" && !action) return show();
     if (m === "POST" && action === "credits") return attempt(to, "Crédits enregistrés.", () => P.addCredits(db, rid, form.get("amount"), form.get("note"), me.login));
     if (m === "POST" && action === "status") return attempt(to, "Statut mis à jour.", () => P.setResellerStatus(db, rid, form.get("status")));

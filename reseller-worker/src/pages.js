@@ -94,6 +94,25 @@ export const ERRORS = {
   activate_first: "Activate this device first, then set up its IPTV subscription.",
 };
 
+/**
+ * Identifiants d'un nouveau compte (ou d'un mot de passe réinitialisé) : adresse du panneau, identifiant, mot de passe
+ * provisoire, et message prêt à envoyer au revendeur avec les étapes (connexion, nouveau mot de passe, contrat).
+ */
+function credentialsCard({ origin, login, password, fr = false, title }) {
+  const url = `${origin || ""}/login`;
+  const msg = fr
+    ? `Bonjour,\n\nVotre espace revendeur Ultra TV Pro est prêt.\n\nAdresse : ${url}\nIdentifiant : ${login}\nMot de passe provisoire : ${password}\n\n1. Connectez-vous avec ces identifiants.\n2. Choisissez votre propre mot de passe (demandé à la première connexion).\n3. Lisez et signez le contrat revendeur (votre nom complet + « J'accepte »).\n4. Vous pouvez ensuite activer les appareils de vos clients avec vos crédits.`
+    : `Hello,\n\nYour Ultra TV Pro reseller space is ready.\n\nAddress: ${url}\nLogin: ${login}\nTemporary password: ${password}\n\n1. Sign in with these credentials.\n2. Choose your own password (asked at first sign-in).\n3. Read and sign the reseller agreement (your full name + "I accept").\n4. You can then activate your customers' devices with your credits.`;
+  const L = fr
+    ? { url: "Adresse de connexion", login: "Identifiant", pwd: "Mot de passe provisoire", note: "Affiché une seule fois : transmettez-le maintenant. Le revendeur devra le changer à sa première connexion.", copy: "Message à envoyer au revendeur" }
+    : { url: "Sign-in address", login: "Login", pwd: "Temporary password", note: "Shown only once: send it now. They must change it at first sign-in.", copy: "Message to send" };
+  return `<div class="card creds" style="margin-bottom:16px"><b>${esc(title)}</b>
+  <table class="creds-table"><tr><th>${L.url}</th><td class="mono"><a href="${esc(url)}">${esc(url)}</a></td></tr>
+  <tr><th>${L.login}</th><td class="mono">${esc(login)}</td></tr><tr><th>${L.pwd}</th><td><span class="secret">${esc(password)}</span></td></tr></table>
+  <p class="muted" style="font-size:13px">${L.note}</p>
+  <label>${L.copy}<textarea readonly rows="11" style="width:100%;font-family:inherit">${esc(msg)}</textarea></label></div>`;
+}
+
 export function loginPage(n, error) {
   return page(n, "Sign in", `<div class="center"><div class="card"><h1>Ultra TV Pro</h1><p class="sub">Reseller panel</p>
   ${error ? `<div class="flash err">${esc(error)}</div>` : ""}
@@ -112,7 +131,7 @@ export function passwordPage(n, me, { forced, error }) {
   <button>${fr ? "Enregistrer" : "Save"}</button></form>`, { me, nav: "profile" });
 }
 
-export function agreementPage(n, me) {
+export function agreementPage(n, me, { error = null } = {}) {
   return page(n, "Reseller agreement", `<h1>Reseller agreement</h1><p class="sub">Version ${AGREEMENT_VERSION}. Please read and accept before activating devices.</p>
   <div class="card agreement">
   <h2>1. Purpose</h2><p>Ultra TV ("the Software") is a media player. It does not provide, host, sell or promote any television channel, film, series or other content. This agreement lets you resell <b>licenses to use the Software</b> ("Activations").</p>
@@ -124,9 +143,13 @@ export function agreementPage(n, me) {
   <h2>7. No warranty, liability</h2><p>The Software is provided "as is". To the extent permitted by law, the provider's liability is limited to the amount paid for unused credits. You indemnify the provider against any claim resulting from your services or content.</p>
   <h2>8. Changes</h2><p>New versions of this agreement will be presented in the panel and must be accepted to continue activating devices.</p>
   </div>
-  <form method="post" action="/agreement" class="row" style="margin-top:16px">${csrf(me)}
-  <label class="check" style="flex:1"><input type="checkbox" name="accept" value="1" required> I have read and accept this agreement, and I confirm that the content I distribute is properly licensed.</label>
-  <button>Accept</button></form>`, { me });
+  <form method="post" action="/agreement" class="card" style="margin-top:16px;display:flex;flex-direction:column;gap:12px">${csrf(me)}
+  <h2 style="margin:0">Signature</h2>
+  ${error === "signer_required" ? `<div class="flash err">Please type your full name to sign.</div>` : ""}
+  <label>Full name of the signatory (you, or the legal representative of your company)<input name="signer" required minlength="3" maxlength="80" autocomplete="name" placeholder="e.g. Basil Ahmed"></label>
+  <label class="check"><input type="checkbox" name="accept" value="1" required> I have read and accept this agreement (version ${AGREEMENT_VERSION}), and I confirm that the content I distribute is properly licensed.</label>
+  <p class="muted" style="font-size:13px;margin:0">Your name, the date and the version of the agreement are recorded as your electronic signature.</p>
+  <div><button>Sign the agreement</button></div></form>`, { me });
 }
 
 function licPill(status, expiresAt, now = Date.now()) {
@@ -243,9 +266,9 @@ export function profilePage(n, me, { r, flash }) {
   <p><a class="btn ghost" href="/password">Change password</a></p>`, { me, nav: "profile", flash });
 }
 
-export function adminPage(n, me, { resellers, flash, created }) {
+export function adminPage(n, me, { resellers, flash, created, origin = "" }) {
   return page(n, "Revendeurs", `<h1>Revendeurs</h1><p class="sub">Créer des comptes, ajouter des crédits après paiement, suspendre.</p>
-  ${created ? `<div class="card" style="margin-bottom:16px"><b>Compte créé : ${esc(created.login)}</b><p>Mot de passe provisoire (affiché une seule fois, à transmettre au revendeur ; il devra le changer) :</p><span class="secret">${esc(created.password)}</span></div>` : ""}
+  ${created ? credentialsCard({ origin, login: created.login, password: created.password, fr: true, title: `Compte créé : ${created.login}` }) : ""}
   <form method="post" action="/admin/resellers" class="card inline">${csrf(me)}
   <label>Identifiant<input name="login" pattern="[a-z0-9][a-z0-9._\\-]{2,31}" required placeholder="basil"></label><label>Nom affiché<input name="name" required maxlength="60" placeholder="Basil TV"></label>
   <label class="check"><input type="checkbox" name="distributor" value="1"> Distributeur</label><button>Créer le revendeur</button></form>
@@ -253,17 +276,17 @@ export function adminPage(n, me, { resellers, flash, created }) {
   <h2>Liste</h2>${resellers.length ? `<table><tr><th>Revendeur</th><th>Type</th><th>Statut</th><th>Crédits</th><th>Clients</th><th>Contrat</th><th></th></tr>${resellers.filter((r) => r.role === "reseller").map((r) => `<tr>
   <td><b>${esc(r.name)}</b><div class="muted mono">${esc(r.login)}</div></td>
   <td>${r.is_distributor === 1 ? `<span class="pill active">distributeur</span> <span class="muted">${r.subs} sous-rev.</span>` : r.parent_id ? `<span class="muted">sous-revendeur de ${esc(r.parent_name || "?")}</span>` : "revendeur"}</td><td><span class="pill ${r.status === "active" ? "active" : "suspended"}">${esc(r.status)}</span></td>
-  <td>${r.balance}</td><td>${r.customers}</td><td>${r.agreement_signed_at ? fmtDate(r.agreement_signed_at) : "<span class='muted'>non signé</span>"}</td>
+  <td>${r.balance}</td><td>${r.customers}</td><td>${r.agreement_signed_at ? `${fmtDate(r.agreement_signed_at)}${r.agreement_signer ? `<div class="muted">${esc(r.agreement_signer)}</div>` : ""}` : "<span class='muted'>non signé</span>"}</td>
   <td><a class="btn ghost" href="/admin/resellers/${esc(r.id)}">Gérer</a></td></tr>`).join("")}</table>` : `<p class="muted">Aucun revendeur.</p>`}`,
   { me, nav: "admin", flash });
 }
 
-export function adminResellerPage(n, me, { r, bal, entries, flash, password }) {
+export function adminResellerPage(n, me, { r, bal, entries, flash, password, origin = "" }) {
   const base = `/admin/resellers/${esc(r.id)}`;
   return page(n, r.name, `<p><a href="/admin">← Revendeurs</a></p><h1>${esc(r.name)}</h1>
-  <p class="sub"><span class="mono">${esc(r.login)}</span> · <span class="pill ${r.status === "active" ? "active" : "suspended"}">${esc(r.status)}</span> · solde <b>${bal}</b> crédit(s) · contrat ${r.agreement_signed_at ? `signé le ${fmtDate(r.agreement_signed_at)}` : "non signé"}</p>
+  <p class="sub"><span class="mono">${esc(r.login)}</span> · <span class="pill ${r.status === "active" ? "active" : "suspended"}">${esc(r.status)}</span> · solde <b>${bal}</b> crédit(s) · contrat ${r.agreement_signed_at ? `signé le ${fmtDate(r.agreement_signed_at)}${r.agreement_signer ? ` par <b>${esc(r.agreement_signer)}</b>` : ""} (v${esc(r.agreement_version || "")})` : "non signé"}</p>
   ${r.agreement_signed_at ? "" : `<p class="muted" style="font-size:13px;margin-top:-10px">Le contrat est accepté par le revendeur lui-même : il lui est présenté dès sa connexion (après le changement de mot de passe). Aucune activation n'est possible avant.</p>`}
-  ${password ? `<div class="card" style="margin-bottom:16px"><b>Nouveau mot de passe provisoire</b> (affiché une seule fois) : <span class="secret">${esc(password)}</span></div>` : ""}
+  ${password ? credentialsCard({ origin, login: r.login, password, fr: true, title: "Nouveau mot de passe provisoire" }) : ""}
   <h2>Crédits</h2><form method="post" action="${base}/credits" class="card inline">${csrf(me)}
   <label>Nombre (négatif = correction)<input name="amount" type="number" required step="1"></label><label>Note (référence du paiement)<input name="note" maxlength="200"></label><button>Enregistrer</button></form>
   <h2>Appareils par licence</h2><form method="post" action="${base}/device-cap" class="card inline">${csrf(me)}
@@ -296,9 +319,9 @@ export function bulkResultPage(n, me, { results }) {
   { me, nav: "home" });
 }
 
-export function networkPage(n, me, { stats, subs, flash, created }) {
+export function networkPage(n, me, { stats, subs, flash, created, origin = "" }) {
   return page(n, "Network", `<h1>Network</h1><p class="sub">Your sub-resellers: give them credits from your balance, follow their activity, suspend them if needed.</p>
-  ${created ? `<div class="card" style="margin-bottom:16px"><b>Sub-reseller created: ${esc(created.login)}</b><p>Temporary password (shown once — send it to them; they will choose their own at first sign-in):</p><span class="secret">${esc(created.password)}</span></div>` : ""}
+  ${created ? credentialsCard({ origin, login: created.login, password: created.password, title: `Sub-reseller created: ${created.login}` }) : ""}
   <div class="grid"><div class="card stat"><b>${stats.subs}</b><span>sub-resellers (${stats.activeSubs} active)</span></div>
   <div class="card stat"><b>${stats.subCredits}</b><span>credits held by sub-resellers</span></div>
   <div class="card stat"><b>${stats.networkCustomers}</b><span>customers in your network</span></div>
@@ -311,11 +334,11 @@ export function networkPage(n, me, { stats, subs, flash, created }) {
   { me, nav: "network", flash });
 }
 
-export function subResellerPage(n, me, { r, bal, myBal, entries, flash, password, stats = null, myCap = 5 }) {
+export function subResellerPage(n, me, { r, bal, myBal, entries, flash, password, stats = null, myCap = 5, origin = "" }) {
   const base = `/network/${esc(r.id)}`;
   return page(n, r.name, `<p><a href="/network">← Network</a></p><h1>${esc(r.name)}</h1>
   <p class="sub"><span class="mono">${esc(r.login)}</span> · <span class="pill ${r.status === "active" ? "active" : "suspended"}">${esc(r.status)}</span> · <b>${bal}</b> credit(s) · agreement ${r.agreement_signed_at ? "accepted" : "pending"}</p>
-  ${password ? `<div class="card" style="margin-bottom:16px"><b>New temporary password</b> (shown once): <span class="secret">${esc(password)}</span></div>` : ""}
+  ${password ? credentialsCard({ origin, login: r.login, password, title: "New temporary password" }) : ""}
   ${stats ? `<div class="grid"><div class="card"><div class="muted">Customers</div><b style="font-size:26px">${stats.customers}</b></div>
   <div class="card"><div class="muted">Activations + renewals this month</div><b style="font-size:26px">${stats.monthOps}</b></div>
   <div class="card"><div class="muted">Licenses expiring in 30 days</div><b style="font-size:26px">${stats.expiringSoon}</b></div></div>` : ""}

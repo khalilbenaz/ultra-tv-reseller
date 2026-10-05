@@ -48,7 +48,10 @@ describe("connexion", () => {
     // Contrat pas encore accepté : le tableau de bord mène au contrat ; une fois accepté, il s'affiche.
     expect((await req("/", { cookie: a.cookie })).headers.get("location")).toBe("/agreement");
     const csrf = await csrfOf(a.cookie);
-    await req("/agreement", { method: "POST", cookie: a.cookie, form: { csrf, accept: "1" } });
+    // Sans nom de signataire : refusé, le contrat reste à signer.
+    await req("/agreement", { method: "POST", cookie: a.cookie, form: { csrf, accept: "1", signer: "" } });
+    expect((await req("/", { cookie: a.cookie })).status).toBe(302);
+    await req("/agreement", { method: "POST", cookie: a.cookie, form: { csrf, accept: "1", signer: "Basil Ahmed" } });
     expect((await req("/", { cookie: a.cookie })).status).toBe(200);
     expect((await req("/")).headers.get("location")).toBe("/login");
   });
@@ -111,7 +114,7 @@ describe("parcours revendeur", () => {
     let csrf = await csrfOf(rev.cookie);
     const reg = await (await req("/api/lic/register", { method: "POST", json: { platform: "android-tv" } })).json();
     expect((await req("/activate", { method: "POST", cookie: rev.cookie, form: { csrf, code: reg.code } })).headers.get("location")).toBe("/agreement");
-    await req("/agreement", { method: "POST", cookie: rev.cookie, form: { csrf, accept: "1" } });
+    await req("/agreement", { method: "POST", cookie: rev.cookie, form: { csrf, accept: "1", signer: "Revendeur Test" } });
     // L'administrateur ajoute 2 crédits.
     const acsrf = await csrfOf(admin.cookie);
     await req(`/admin/resellers/${rev.id}/credits`, { method: "POST", cookie: admin.cookie, form: { csrf: acsrf, amount: "2", note: "virement 123" } });
@@ -167,6 +170,11 @@ describe("administration", () => {
     const html = await (await req("/admin/resellers", { method: "POST", cookie: admin.cookie, form: { csrf, login, name: "Basil" } })).text();
     const pwd = html.match(/class="secret">([^<]+)</)[1];
     expect(pwd.length).toBe(16);
+    // Identifiants complets : adresse du panneau, identifiant, et message prêt à envoyer avec les étapes.
+    expect(html).toContain("/login");
+    expect(html).toContain(`Identifiant : ${login}`);
+    expect(html).toContain(`Mot de passe provisoire : ${pwd}`);
+    expect(html).toContain("signez le contrat");
     const res = await req("/login", { method: "POST", form: { login, password: pwd } });
     expect((await req("/", { cookie: cookieOf(res) })).headers.get("location")).toBe("/password");
     // Identifiant déjà pris.

@@ -311,8 +311,12 @@ export async function updateProfile(db, rid, { name, whatsapp, telegram, support
     .bind(n, wa, tg, text(supportText, 300) || null, rd, rid).run();
 }
 
-export async function acceptAgreement(db, rid, now = Date.now()) {
-  await db.prepare(`UPDATE reseller SET agreement_signed_at = ?, agreement_version = ? WHERE id = ?`).bind(now, AGREEMENT_VERSION, rid).run();
+/** Signature du contrat : nom complet du signataire, date et version (signature électronique par acceptation). */
+export async function acceptAgreement(db, rid, now = Date.now(), signer = null) {
+  const name = signer == null ? null : text(signer, 80);
+  if (signer != null && (!name || name.length < 3)) throw new PanelError("signer_required");
+  await db.prepare(`UPDATE reseller SET agreement_signed_at = ?, agreement_version = ?, agreement_signer = COALESCE(?, agreement_signer) WHERE id = ?`)
+    .bind(now, AGREEMENT_VERSION, name, rid).run();
 }
 
 // ---- administration ----

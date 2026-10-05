@@ -9,9 +9,12 @@
 Ultra TV Pro est **le même lecteur** qu'Ultra TV, avec une couche de licence :
 
 - au premier lancement, l'application affiche un **code appareil** (ex. `7F3K-92QD`) et démarre un **essai de 7 jours** ;
-- le revendeur active ce code depuis son **panneau** : **1 crédit = 1 client, 1 an, 2 appareils** ;
+- le revendeur active ce code depuis son **panneau** : **1 crédit = 1 client, 1 an**, avec le **nombre d'appareils** qu'il
+  choisit (2 par défaut, dans le plafond fixé par l'administrateur ou son distributeur) ;
 - à l'expiration ou en cas de suspension, l'application se bloque et affiche le **contact du revendeur** ;
-- le revendeur envoie des **annonces** à ses clients (affichées à l'ouverture de l'application).
+- le revendeur envoie des **annonces** à ses clients : **boîte de réception** relisible dans l'application (pastille de
+  non-lus dans le menu), plus des **rappels de renouvellement automatiques** ;
+- le contact **WhatsApp / Telegram** du revendeur est affiché dans l'application (bouton, ou QR code sur TV).
 
 **Modèle économique** : crédits **prépayés** vendus au revendeur, prix fixe, pas de partage de revenus. Ultra TV Pro ne
 fournit, n'héberge et ne vend **aucun contenu** ; chaque revendeur accepte un **contrat** (contenu sous licence) avant sa
@@ -40,6 +43,9 @@ reportée ici.
 - Identifiant : 3 à 32 caractères (lettres minuscules, chiffres, `.`, `_`, `-`), unique.
 - Tout nouveau compte reçoit un **mot de passe provisoire affiché une seule fois** ; il doit être changé à la première
   connexion (10 caractères minimum). Changer ou réinitialiser un mot de passe ferme les autres sessions.
+- À la création (ou réinitialisation), le panneau affiche les **identifiants complets** : adresse de connexion
+  (`…/login`), identifiant, mot de passe provisoire, et un **message prêt à envoyer** au revendeur avec les étapes
+  (connexion, nouveau mot de passe, signature du contrat, activation). Pareil pour un distributeur qui crée un sous-revendeur.
 - Tentatives de connexion limitées : 10 par IP / 15 min, 20 par identifiant / heure.
 
 ### Contrat revendeur
@@ -47,12 +53,16 @@ reportée ici.
 - Obligatoire avant la **première activation** (revendeurs et sous-revendeurs ; l'administrateur n'en a pas besoin).
 - Le revendeur garantit que le contenu qu'il distribue est **sous licence** ; il reste seul responsable de ses services,
   abonnements et clients. Ultra TV Pro ne fournit, n'héberge ni ne vend aucun contenu.
+- **Signature** : à sa première connexion (après le changement de mot de passe), le revendeur est conduit d'office à la
+  page `/agreement` ; il saisit le **nom complet du signataire** (lui-même ou le représentant légal de sa société) et
+  coche « J'accepte ». Le nom, la date et la version sont enregistrés comme **signature électronique** et visibles par
+  l'administrateur (liste et fiche du revendeur). Une nouvelle version du contrat doit être signée à nouveau.
 - Texte : page `/agreement` du panneau (version `AGREEMENT_VERSION` dans `reseller-worker/src/panel.js`).
 
 ### Crédits
 
 - **Prépayés** : l'administrateur ajoute des crédits après paiement, avec une note de référence.
-- **1 crédit = 1 client pendant 1 an, jusqu'à 2 appareils**, ou **1 renouvellement d'1 an**.
+- **1 crédit = 1 client pendant 1 an**, quel que soit son nombre d'appareils, ou **1 renouvellement d'1 an**.
 - Le solde est la **somme du grand livre** (jamais stocké) ; chaque mouvement est tracé : achat, activation,
   renouvellement, transfert, correction.
 - **Jamais de solde négatif**, jamais de crédit dépensé deux fois, même en cas de clics simultanés.
@@ -63,8 +73,13 @@ reportée ici.
 
 - Au premier lancement, l'application reçoit un **code appareil** `XXXX-XXXX` (sans 0/O ni 1/I/L) et un **essai gratuit
   de 7 jours**.
-- **Activation d'un nouveau client** : 1 crédit, licence d'**1 an** à partir de l'activation, **2 appareils** maximum.
-- **Deuxième appareil** d'un client : gratuit, si sa licence est active et qu'il reste une place.
+- **Activation d'un nouveau client** : 1 crédit, licence d'**1 an** à partir de l'activation ; le revendeur choisit le
+  **nombre d'appareils** autorisés (2 par défaut).
+- **Plafond d'appareils par licence** : fixé par l'administrateur pour chaque revendeur (5 par défaut, 1 à 10) ; un
+  distributeur fixe celui de ses sous-revendeurs, sans dépasser le sien. Le revendeur peut modifier la limite d'un client
+  sur sa fiche, dans ce plafond, mais **jamais sous le nombre d'appareils déjà rattachés** (détacher d'abord).
+- **Appareil supplémentaire** d'un client : gratuit, si sa licence est active et qu'il reste une place ; l'application
+  affiche les appareils utilisés / autorisés (ex. « 2 / 3 »).
 - **Changement de box** : le revendeur détache l'ancien appareil, la place se libère pour un nouveau code.
 - Un code déjà activé ne peut pas être activé à nouveau (ni par un autre revendeur).
 - **Activation en lot** : jusqu'à 200 codes, résultat par code ; s'arrête dès que les crédits manquent.
@@ -76,6 +91,9 @@ reportée ici.
 - Renouveler = 1 crédit = **+1 an à partir de la fin actuelle** (ou d'aujourd'hui si la licence a déjà expiré).
 - À l'expiration, l'application se bloque et affiche le code de l'appareil et le contact du revendeur ;
   bandeau d'avertissement dans l'application 15 jours avant.
+- **Rappel de renouvellement automatique** : le revendeur choisit dans son profil un délai (7, 15 ou 30 jours avant
+  l'expiration, 15 par défaut, ou désactivé) ; le rappel arrive dans la boîte de réception des clients concernés,
+  traduit dans la langue de l'application, une fois par échéance.
 
 ### Suspension
 
@@ -94,8 +112,10 @@ Exception : décision d'un tribunal ou d'une autorité compétente (contrat §6)
 - Le distributeur **transfère** des crédits de son solde vers un sous-revendeur, ou **reprend** des crédits inutilisés ;
   chaque transfert crée deux lignes de grand livre (débit / crédit) de même référence : rien n'est créé ni perdu.
 - Le distributeur revend ses crédits au prix qu'il veut, **hors plateforme** ; l'éditeur ne facture que le distributeur.
-- Le distributeur voit pour chaque sous-revendeur : solde, clients, activations des 30 derniers jours, dernière activation ;
-  il ne voit pas le détail de leurs clients.
+- Le distributeur voit pour chaque sous-revendeur : solde, clients, activations et renouvellements (30 derniers jours et
+  mois en cours), licences qui expirent sous 30 jours, dernière activation, historique des crédits ; il ne voit pas le
+  détail de leurs clients.
+- Il fixe le **plafond d'appareils par licence** de chaque sous-revendeur (dans la limite du sien).
 
 ### Abonnement IPTV configuré par le revendeur
 
@@ -115,15 +135,20 @@ Exception : décision d'un tribunal ou d'une autorité compétente (contrat §6)
 
 - Cibles : **tous mes clients**, **un client**, ou (distributeur) **tout mon réseau**.
 - Durée de visibilité : 1, 7, 30 jours ou sans fin ; titre 120 caractères, message 2 000.
-- Affichées à l'ouverture de l'application, une à la fois ; « OK » les marque lues ; le panneau indique le nombre de lectures.
+- Exemples d'usage : mises à jour de service, maintenance, rappels de renouvellement, offres, informations de support.
+- Visibles **uniquement par les clients rattachés au revendeur** (ou à son réseau pour un distributeur).
+- Dans l'application : présentées à l'ouverture et à chaque contrôle (15 min), une à la fois ; puis **relisibles dans la
+  boîte de réception** (menu « Abonnement », section Messages), avec une **pastille de non-lus** sur l'entrée du menu.
+  Ouvrir un message le marque lu ; le panneau indique le nombre de lectures.
 
 ### Application et hors ligne
 
 - Le statut de licence est **signé (Ed25519)** par le Worker et vérifié par l'application avec la clé publique embarquée.
-- Contrôle au démarrage puis toutes les 6 heures ; **hors ligne**, le dernier statut signé reste valable jusqu'à
+- Contrôle au démarrage puis toutes les 15 minutes ; **hors ligne**, le dernier statut signé reste valable jusqu'à
   **3 jours** après la fin de la licence ou de l'essai (délai de grâce).
 - Une horloge d'appareil reculée ne prolonge pas une licence.
-- Le menu **Abonnement** montre la licence (statut, fin, jours restants, code, revendeur, contact) et l'abonnement IPTV.
+- Le menu **Abonnement** montre la licence (statut, fin, jours restants, code, appareils utilisés / autorisés, revendeur,
+  contact WhatsApp / Telegram), l'abonnement IPTV et la **boîte de réception**.
 
 ### Données
 
@@ -181,23 +206,27 @@ en fusionnant `main` (voir [Suivre l'application publique](#suivre-lapplication-
 - créer un revendeur (mot de passe provisoire affiché une fois, changement imposé à la première connexion) ;
 - créer un **distributeur** (case à cocher) ou promouvoir un revendeur existant ;
 - ajouter des crédits après paiement (négatif = correction, jamais en dessous de zéro), avec une note de référence ;
-- suspendre / réactiver un revendeur (accès et activations ; ses clients gardent leur licence), réinitialiser son mot de passe, consulter le grand livre.
+- suspendre / réactiver un revendeur (accès et activations ; ses clients gardent leur licence), réinitialiser son mot de passe, consulter le grand livre ;
+- fixer le **plafond d'appareils par licence** de chaque revendeur ;
+- voir qui a **signé le contrat**, quand et quelle version.
 
 **Distributeur** (revendeur promu par l'administrateur, phase 2) — tout ce que fait un revendeur, plus le menu **Network** :
 - créer des **sous-revendeurs** (mot de passe provisoire affiché une fois) ;
 - leur **transférer** des crédits depuis son solde, ou **reprendre** des crédits inutilisés (jamais de solde négatif) ;
-- suivre leur activité (solde, clients, activations sur 30 jours, dernière activation) et les totaux du réseau ;
+- suivre leur activité (solde, clients, activations et renouvellements, licences qui expirent, dernière activation) et les totaux du réseau ;
+- fixer leur **plafond d'appareils par licence** ;
 - **suspendre** un sous-revendeur (accès au panneau et nouvelles activations bloqués ; ses clients gardent leur licence jusqu'à expiration) ;
 - envoyer une annonce à **tout son réseau** (clients de tous ses sous-revendeurs).
 Si l'administrateur suspend un distributeur, tout son réseau perd l'accès au panneau et ne peut plus activer ni renouveler ;
 **les clients ne sont jamais bloqués** : ils ont payé leur période, leur licence reste valide jusqu'à expiration.
 
 **Revendeur** (ou sous-revendeur) :
-- accepter le contrat (obligatoire avant toute activation) ;
-- **activer** un code appareil (nouveau client : 1 crédit ; 2ᵉ appareil d'un client : gratuit) ;
+- **signer le contrat** (nom complet + acceptation, obligatoire avant toute activation) ;
+- **activer** un code appareil (nouveau client : 1 crédit, nombre d'appareils au choix ; appareil supplémentaire : gratuit) ;
+- modifier le **nombre d'appareils** d'un client (fiche client) ;
 - clients : renouveler (+1 an depuis la fin actuelle, 1 crédit), suspendre / reprendre, détacher un appareil (changement de box), libellé et note ;
 - **annonces** à tous ses clients ou à un client, avec durée de visibilité et nombre de lectures ;
-- profil : nom affiché, WhatsApp, Telegram, texte de support (montrés dans l'application).
+- profil : nom affiché, WhatsApp, Telegram, texte de support (montrés dans l'application), délai du **rappel de renouvellement automatique**.
 - **activation en lot** (une liste de codes, résultat par code) ;
 - **prolongation d'essai** : +7 jours, gratuite, une seule fois par appareil (pour laisser un prospect tester) ;
 - **exports CSV** des clients et de l'historique des crédits.
@@ -208,10 +237,10 @@ Si l'administrateur suspend un distributeur, tout son réseau perd l'accès au p
 |---|---|---|
 | POST | `/api/lic/register` | Premier lancement → `{deviceId, code, installSecret, trialEndsAt}` (20 / h / IP) |
 | GET | `/api/lic/status?v=<version>` | `Bearer <installSecret>` → `{payload, sig}` signé Ed25519 |
-| GET | `/api/lic/inbox` | Annonces destinées à l'appareil |
+| GET | `/api/lic/inbox` | Annonces destinées à l'appareil, plus le rappel de renouvellement (`kind: "renewal"`, `until`) |
 | POST | `/api/lic/inbox/read` | `{ids}` : marquer lues |
 
-Statuts : `trial`, `active`, `expired`, `suspended`. Détails : [`reseller-worker/README.md`](reseller-worker/README.md).
+Statuts : `trial`, `active`, `expired`, `suspended`. Le statut contient aussi `devices: { used, max }` et `unread`. Détails : [`reseller-worker/README.md`](reseller-worker/README.md).
 
 ## Construire et publier une version Pro
 
