@@ -35,10 +35,11 @@ export function normalizeDeviceCode(raw) {
 
 /**
  * Statut d'un appareil (fonction pure).
- * Priorité : suspension > licence valide > licence expirée > essai > expiré.
+ * Priorité : licence suspendue > licence valide > licence expirée > essai > expiré.
+ * La suspension d'un REVENDEUR (ou de son distributeur) ne touche jamais ses clients : ils ont payé leur période,
+ * leur licence reste valide jusqu'à son expiration. Seule la suspension explicite d'un client le bloque.
  */
-export function computeStatus({ device, license, reseller }, now = Date.now()) {
-  if (reseller && reseller.status !== "active") return { status: "suspended", until: null };
+export function computeStatus({ device, license }, now = Date.now()) {
   if (license) {
     if (license.status !== "active") return { status: "suspended", until: null };
     if (license.expires_at > now) return { status: "active", until: license.expires_at };
@@ -84,7 +85,7 @@ export async function loadDeviceContext(db, installSecret) {
   ).bind(device.customer_id).first();
   // Licence la plus lointaine du client (un renouvellement prolonge, il n'y en a normalement qu'une).
   const license = await db.prepare(`SELECT * FROM license WHERE customer_id = ? ORDER BY expires_at DESC LIMIT 1`).bind(device.customer_id).first();
-  // Réseau : un sous-revendeur dont le distributeur est suspendu l'est aussi (et tous ses clients).
+  // Statut du revendeur pour information (panneau, activations) ; sans effet sur la licence des clients.
   const reseller = row ? {
     id: row.r_id, name: row.name, parentId: row.parent_id ?? null,
     status: row.r_status === "active" && (!row.parent_id || row.p_status === "active") ? "active" : "suspended",

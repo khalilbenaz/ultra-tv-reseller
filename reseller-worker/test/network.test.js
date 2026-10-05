@@ -93,21 +93,21 @@ describe("transferts de crédits", () => {
 });
 
 describe("suspension en cascade", () => {
-  it("distributeur suspendu → clients des sous-revendeurs suspendus, activations refusées ; réactivé → rétablis", async () => {
+  it("distributeur suspendu → activations refusées au réseau, mais les clients gardent leur licence payée", async () => {
     const d = await dist(5);
     const s = await sub(d);
     await transferCredits(db, d, s, 2, "d");
     const dev = await device();
     await activate(db, s, { code: dev.code }, "s");
     await setResellerStatus(db, d, "suspended");
-    expect(computeStatus(await loadDeviceContext(db, dev.installSecret)).status).toBe("suspended");
+    expect(computeStatus(await loadDeviceContext(db, dev.installSecret)).status).toBe("active");
     expect(await err(activate(db, s, { code: (await device()).code }, "s"))).toBe("reseller_suspended");
     expect(await balance(db, s)).toBe(1);
     await setResellerStatus(db, d, "active");
     expect(computeStatus(await loadDeviceContext(db, dev.installSecret)).status).toBe("active");
   });
 
-  it("le distributeur suspend un sous-revendeur : seuls les clients de celui-ci sont coupés", async () => {
+  it("le distributeur suspend un sous-revendeur : ses clients restent actifs, ses activations sont refusées", async () => {
     const d = await dist(5);
     const s1 = await sub(d), s2 = await sub(d);
     await transferCredits(db, d, s1, 1, "d");
@@ -116,8 +116,9 @@ describe("suspension en cascade", () => {
     await activate(db, s1, { code: a.code }, "s1");
     await activate(db, s2, { code: b.code }, "s2");
     await setSubStatus(db, d, s1, "suspended");
-    expect(computeStatus(await loadDeviceContext(db, a.installSecret)).status).toBe("suspended");
+    expect(computeStatus(await loadDeviceContext(db, a.installSecret)).status).toBe("active");
     expect(computeStatus(await loadDeviceContext(db, b.installSecret)).status).toBe("active");
+    expect(await err(activate(db, s1, { code: (await device()).code }, "s1"))).toBe("reseller_suspended");
   });
 });
 

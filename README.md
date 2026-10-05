@@ -67,15 +67,16 @@ en fusionnant `main` (voir [Suivre l'application publique](#suivre-lapplication-
 - créer un revendeur (mot de passe provisoire affiché une fois, changement imposé à la première connexion) ;
 - créer un **distributeur** (case à cocher) ou promouvoir un revendeur existant ;
 - ajouter des crédits après paiement (négatif = correction, jamais en dessous de zéro), avec une note de référence ;
-- suspendre / réactiver un revendeur (coupe toutes ses licences), réinitialiser son mot de passe, consulter le grand livre.
+- suspendre / réactiver un revendeur (accès et activations ; ses clients gardent leur licence), réinitialiser son mot de passe, consulter le grand livre.
 
 **Distributeur** (revendeur promu par l'administrateur, phase 2) — tout ce que fait un revendeur, plus le menu **Network** :
 - créer des **sous-revendeurs** (mot de passe provisoire affiché une fois) ;
 - leur **transférer** des crédits depuis son solde, ou **reprendre** des crédits inutilisés (jamais de solde négatif) ;
 - suivre leur activité (solde, clients, activations sur 30 jours, dernière activation) et les totaux du réseau ;
-- **suspendre** un sous-revendeur (ses clients sont bloqués, son accès au panneau aussi) ;
+- **suspendre** un sous-revendeur (accès au panneau et nouvelles activations bloqués ; ses clients gardent leur licence jusqu'à expiration) ;
 - envoyer une annonce à **tout son réseau** (clients de tous ses sous-revendeurs).
-Si l'administrateur suspend un distributeur, tout son réseau est suspendu (clients et accès).
+Si l'administrateur suspend un distributeur, tout son réseau perd l'accès au panneau et ne peut plus activer ni renouveler ;
+**les clients ne sont jamais bloqués** : ils ont payé leur période, leur licence reste valide jusqu'à expiration.
 
 **Revendeur** (ou sous-revendeur) :
 - accepter le contrat (obligatoire avant toute activation) ;

@@ -118,7 +118,7 @@ CREATE TABLE message_read (message_id TEXT, device_id TEXT, read_at INTEGER, PRI
    déjà pour un utilisateur et ses propres sources ; **dans le pilote, le revendeur ne pousse pas de sources** vers ses
    clients (option à réévaluer avec le juriste).
 3. **Facturation = vente de licences logicielles** à prix fixe, prépayées. Pas de pourcentage sur ses ventes.
-4. **Suspension en un clic** d'un revendeur (toutes ses licences passent en `suspended`).
+4. **Suspension en un clic** d'un revendeur : accès au panneau et nouvelles activations coupés ; les licences déjà vendues restent valides jusqu'à expiration (les clients ont payé).
 5. Conditions d'utilisation de l'app mises à jour (rôle de simple lecteur, interdiction de contenus sans droits).
 6. Données personnelles minimales : aucun nom ni téléphone de client obligatoire (`label` libre), pas d'adresse IP stockée.
 
@@ -164,8 +164,9 @@ L'application publique (édition standard) n'est pas modifiée dans son comporte
   ne peut pas créer de sous-revendeurs.
 - **Transferts / reprises** de crédits : deux lignes du grand livre (`transfer`) de même référence dans un lot D1 ; la
   première est conditionnée au solde → jamais de négatif, rien de créé ni perdu (testé : 10 transferts simultanés).
-- **Suspension en cascade** : distributeur suspendu ⇒ clients de ses sous-revendeurs suspendus, activations refusées,
-  accès au panneau coupé ; un sous-revendeur suspendu ne bloque que ses propres clients.
+- **Suspension** (décision du 2026-10-05) : suspendre un revendeur ou un distributeur coupe l'accès au panneau et les
+  nouvelles activations / renouvellements de tout le réseau concerné, mais **ne bloque jamais les clients** : ils ont payé
+  leur période, leur licence reste valide jusqu'à expiration. Seule la suspension explicite d'un client le bloque.
 - **Annonces réseau** (`target = 'network'`) visibles par les clients de tous les sous-revendeurs du distributeur.
 - **Outils commerciaux** : activation en lot, prolongation d'essai +7 j (une fois par appareil, colonne
   `device.trial_extended`), exports CSV clients et grand livre (cellules commençant par = + - @ neutralisées).

@@ -67,8 +67,8 @@ describe("computeStatus", () => {
     expect(computeStatus({ device, license: { status: "active", expires_at: now + 5000 }, reseller: { status: "active" } }, now)).toEqual({ status: "active", until: now + 5000 });
     expect(computeStatus({ device, license: { status: "active", expires_at: now - 1 }, reseller: { status: "active" } }, now).status).toBe("expired");
   });
-  it("revendeur ou licence suspendus : suspended, même avec une licence valide", () => {
-    expect(computeStatus({ device, license: { status: "active", expires_at: now + 5000 }, reseller: { status: "suspended" } }, now).status).toBe("suspended");
+  it("licence suspendue : suspended ; revendeur suspendu : la licence payée reste valide", () => {
+    expect(computeStatus({ device, license: { status: "active", expires_at: now + 5000 }, reseller: { status: "suspended" } }, now).status).toBe("active");
     expect(computeStatus({ device, license: { status: "suspended", expires_at: now + 5000 }, reseller: { status: "active" } }, now).status).toBe("suspended");
   });
 });
@@ -123,9 +123,15 @@ describe("API /api/lic", () => {
     expect(body.graceUntil).toBeNull();
   });
 
-  it("revendeur suspendu : toutes ses licences suspendues", async () => {
+  it("revendeur suspendu : ses clients gardent leur licence payée", async () => {
     const r = await register();
     await attach(r.deviceId, { resellerStatus: "suspended" });
+    expect((await status(r.installSecret)).body.status).toBe("active");
+  });
+
+  it("licence d'un client suspendue explicitement : suspended", async () => {
+    const r = await register();
+    await attach(r.deviceId, { licStatus: "suspended" });
     expect((await status(r.installSecret)).body.status).toBe("suspended");
   });
 
