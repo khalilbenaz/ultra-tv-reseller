@@ -9,48 +9,66 @@ const fmtDate = (ms) => (ms ? new Date(ms).toISOString().slice(0, 10) : "—");
 const fmtDateTime = (ms) => (ms ? new Date(ms).toISOString().slice(0, 16).replace("T", " ") + " UTC" : "—");
 
 const CSS = `
-:root{--bg:#f4f3ef;--surface:#fff;--s2:#ecebe6;--text:#16151a;--t2:#5b5a60;--accent:#d91e2b;--ok:#1f8a4c;--warn:#b26a00;--line:#e2e0da}
-@media (prefers-color-scheme:dark){:root{--bg:#0e0e11;--surface:#18181c;--s2:#232328;--text:#f3f3f5;--t2:#a5a4ab;--line:#2c2c32}}
-*{box-sizing:border-box}body{margin:0;font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--text)}
-a{color:inherit}header{display:flex;align-items:center;gap:16px;padding:14px 24px;background:var(--surface);border-bottom:1px solid var(--line);flex-wrap:wrap}
-header .brand{font-weight:800;font-size:17px;display:flex;align-items:center;gap:8px}header .brand i{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--accent)}
-header nav{display:flex;gap:4px;flex-wrap:wrap;flex:1}header nav a{padding:6px 12px;border-radius:999px;text-decoration:none;font-weight:600;color:var(--t2)}
-header nav a.on,header nav a:hover{background:var(--s2);color:var(--text)}main{max-width:1080px;margin:0 auto;padding:24px 16px 64px}
-h1{font-size:26px;margin:0 0 4px}h2{font-size:18px;margin:28px 0 10px}.sub{color:var(--t2);margin:0 0 18px}
-.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px}.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
-.stat b{display:block;font-size:30px;font-weight:800}.stat span{color:var(--t2);font-size:13px}
-form.inline{display:flex;gap:8px;flex-wrap:wrap;align-items:end}label{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600;color:var(--t2)}
-input,select,textarea{font:inherit;padding:9px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--text);min-width:0}
-textarea{min-height:110px;width:100%}input.code{font:700 20px ui-monospace,monospace;letter-spacing:2px;text-transform:uppercase;width:12ch}
-button,.btn{font:inherit;font-weight:700;padding:9px 16px;border-radius:999px;border:0;background:var(--text);color:var(--bg);cursor:pointer;text-decoration:none;display:inline-block}
-button.ghost,.btn.ghost{background:var(--s2);color:var(--text)}button.danger{background:var(--accent);color:#fff}
-table{width:100%;border-collapse:collapse;background:var(--surface);border-radius:16px;overflow:hidden;border:1px solid var(--line)}
-th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);font-size:14px;vertical-align:top}th{color:var(--t2);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em}
-tr:last-child td{border-bottom:0}.mono{font-family:ui-monospace,monospace}.muted{color:var(--t2)}
-.pill{display:inline-block;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:700;background:var(--s2)}
-.pill.active{background:#1f8a4c22;color:var(--ok)}.pill.expired,.pill.suspended{background:#d91e2b22;color:var(--accent)}.pill.soon{background:#b26a0022;color:var(--warn)}
-.flash{padding:12px 16px;border-radius:12px;margin:0 0 16px;font-weight:600}.flash.ok{background:#1f8a4c1f;color:var(--ok)}.flash.err{background:#d91e2b1f;color:var(--accent)}
-.secret{font:700 18px ui-monospace,monospace;background:var(--s2);padding:10px 14px;border-radius:10px;display:inline-block;user-select:all}
-.center{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px}.center .card{width:100%;max-width:400px}
-.center form{display:flex;flex-direction:column;gap:12px}.agreement{max-height:52vh;overflow:auto;background:var(--bg);border-radius:12px;padding:4px 18px;border:1px solid var(--line)}
+:root{--bg:#0a0a0c;--side:#0e0e11;--surface:#141418;--s2:#1a1a1f;--field:#0e0e11;--text:#f2f2f3;--t2:#a1a1aa;--t3:#71717a;--accent:#d91e2b;--ok:#4ade80;--warn:#fbbf5c;--line:#1e1e22;--line2:#2a2a30;color-scheme:dark}
+*{box-sizing:border-box}body{margin:0;font:15px/1.5 Manrope,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--text)}
+a{color:inherit}h1,h2,.brand b,.stat b{font-family:Sora,Manrope,system-ui,sans-serif}
+.shell{display:flex;min-height:100vh}
+.side{width:248px;flex:none;background:var(--side);border-right:1px solid var(--line);padding:26px 16px;display:flex;flex-direction:column;gap:4px;position:sticky;top:0;height:100vh}
+.brand{display:flex;align-items:center;gap:10px;padding:2px 10px 22px}.brand i{width:34px;height:34px;border-radius:10px;background:var(--accent);display:flex;align-items:center;justify-content:center}
+.brand i svg{width:18px;height:18px}.brand b{display:block;font-size:16px;letter-spacing:.04em;line-height:1.1}.brand small{display:block;font-size:11px;font-weight:700;color:var(--accent);letter-spacing:.18em}
+.side nav{display:flex;flex-direction:column;gap:4px;flex:1}.side nav a{padding:11px 12px;border-radius:10px;text-decoration:none;font-weight:600;font-size:14px;color:var(--t2)}
+.side nav a.on{background:var(--s2);color:var(--text);box-shadow:inset 3px 0 0 var(--accent)}.side nav a:hover{color:var(--text);background:var(--s2)}
+.side .who{border-top:1px solid var(--line);padding:14px 10px 0;display:flex;flex-direction:column;gap:10px;font-size:13px;color:var(--t2)}.side .who b{color:var(--text);font-size:14px}
+.side .who button{width:100%}
+main{flex:1;min-width:0;max-width:1180px;padding:36px 44px 64px}
+h1{font-size:30px;font-weight:700;margin:0 0 4px;letter-spacing:-.01em}h2{font-size:19px;font-weight:600;margin:32px 0 12px}.sub{color:var(--t2);margin:0 0 22px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:22px}.grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+.stat{display:flex;flex-direction:column-reverse;gap:6px}.stat b{display:block;font-size:34px;font-weight:700;line-height:1.1}.stat span{color:var(--t2);font-size:13px;font-weight:600}
+.grid .stat:first-child{background:linear-gradient(135deg,var(--accent),#8f1019);border-color:transparent}.grid .stat:first-child span{color:#ffd9dc}
+form.inline{display:flex;gap:12px;flex-wrap:wrap;align-items:end}label{display:flex;flex-direction:column;gap:7px;font-size:13px;font-weight:600;color:#d4d4d8}
+input,select,textarea{font:inherit;font-size:14px;padding:11px 12px;min-height:44px;border-radius:10px;border:1px solid var(--line2);background:var(--field);color:var(--text);min-width:0}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:transparent}::placeholder{color:var(--t3)}
+textarea{min-height:110px;width:100%}input.code{font:700 19px ui-monospace,Menlo,monospace;letter-spacing:.12em;text-transform:uppercase;width:13ch}
+button,.btn{font:inherit;font-size:14px;font-weight:700;padding:11px 18px;min-height:44px;border-radius:10px;border:0;background:var(--accent);color:#fff;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
+button:hover,.btn:hover{filter:brightness(1.1)}button:focus-visible,.btn:focus-visible,a:focus-visible{outline:2px solid var(--text);outline-offset:2px}
+button.ghost,.btn.ghost{background:transparent;color:var(--text);border:1px solid var(--line2)}button.ghost:hover,.btn.ghost:hover{background:var(--s2);filter:none}button.danger{background:var(--accent);color:#fff}
+table{width:100%;border-collapse:collapse;background:var(--surface);border-radius:18px;overflow:hidden;border:1px solid var(--line)}
+th,td{text-align:left;padding:13px 16px;border-bottom:1px solid var(--line);font-size:14px;vertical-align:middle}th{color:var(--t3);font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.1em}
+tr:last-child td{border-bottom:0}tr:hover td{background:#17171c}.mono{font-family:ui-monospace,Menlo,monospace}.muted{color:var(--t2)}
+.pill{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700;background:var(--s2);color:var(--t2)}
+.pill.active{background:#1f3a2a;color:var(--ok)}.pill.expired,.pill.suspended{background:#3a1216;color:#ff6b75}.pill.soon{background:#3a2a10;color:var(--warn)}
+.flash{padding:13px 16px;border-radius:12px;margin:0 0 18px;font-weight:600;border:1px solid}.flash.ok{background:#0f1a14;border-color:#1f3a2a;color:var(--ok)}.flash.err{background:#1f0e10;border-color:#3a1216;color:#ff8a92}
+.secret{font:700 18px ui-monospace,Menlo,monospace;background:var(--bg);border:1px solid var(--line2);padding:10px 14px;border-radius:10px;display:inline-block;user-select:all;letter-spacing:.05em}
+.creds{background:#0f1a14;border-color:#1f3a2a}.creds table{background:transparent;border:0;margin:12px 0}.creds th{width:220px}.creds tr:hover td{background:transparent}
+.center{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px;background:radial-gradient(900px 500px at 50% -10%,#2a0a0e,transparent)}.center .card{width:100%;max-width:420px;padding:30px}
+.center .brand{padding:0 0 18px}.center form{display:flex;flex-direction:column;gap:14px}.agreement{max-height:52vh;overflow:auto;background:var(--bg);border-radius:12px;padding:4px 20px;border:1px solid var(--line)}
+.agreement h2{font-size:16px;margin:20px 0 6px}.agreement p{color:#d4d4d8}
 .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-.check{display:flex;flex-direction:row;align-items:center;gap:8px;min-height:42px;color:var(--text);font-size:14px;font-weight:600;cursor:pointer}
-.check input{width:18px;height:18px;margin:0;accent-color:var(--accent)}form.inline .check{align-self:flex-end}
-.acts{display:flex;flex-direction:column;gap:2px;padding:6px 18px}.act{display:grid;grid-template-columns:minmax(220px,auto) 1fr;gap:16px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.check{display:flex;flex-direction:row;align-items:center;gap:10px;min-height:44px;color:var(--text);font-size:14px;font-weight:600;cursor:pointer}
+.check input{width:18px;height:18px;min-height:0;margin:0;accent-color:var(--accent)}form.inline .check{align-self:flex-end}
+.acts{display:flex;flex-direction:column;gap:2px;padding:6px 22px}.act{display:grid;grid-template-columns:minmax(240px,auto) 1fr;gap:18px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)}
 .act:last-child{border-bottom:0}.act form{margin:0}.act button{width:100%}.act .muted{font-size:13px}
+@media (max-width:860px){.shell{flex-direction:column}.side{width:auto;height:auto;position:static;padding:14px 16px;border-right:0;border-bottom:1px solid var(--line)}
+.brand{padding:0 0 10px}.side nav{flex-direction:row;flex-wrap:wrap}.side nav a{padding:8px 12px}.side .who{flex-direction:row;align-items:center;justify-content:space-between;padding-top:10px}.side .who button{width:auto}
+main{padding:24px 16px 56px}table{display:block;overflow-x:auto}}
 @media (max-width:640px){.act{grid-template-columns:1fr;gap:6px}}
 `;
 
+const LOGO = `<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="5" width="20" height="13" rx="2"/><path d="M10 9l5 2.5-5 2.5z"/></svg>`;
+const FONTS = `<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Sora:wght@600;700&display=swap">`;
+const brand = (tag) => `<div class="brand"><i>${LOGO}</i><div><b>ULTRA TV</b><small>${tag}</small></div></div>`;
+
 function page(n, title, body, { me = null, nav = "", flash = null } = {}) {
-  const links = !me ? "" : me.role === "admin"
+  const admin = me?.role === "admin";
+  const links = !me ? "" : admin
     ? [["/admin", "Revendeurs", "admin"], ["/profile", "Mon compte", "profile"]]
     : [["/", "Dashboard", "home"], ["/customers", "Customers", "customers"], ...(me.is_distributor === 1 ? [["/network", "Network", "network"]] : []),
        ["/messages", "Announcements", "messages"], ["/profile", "Profile", "profile"]];
-  const head = me ? `<header><div class="brand"><i></i>Ultra TV Pro</div><nav>${links.map(([h, l, k]) => `<a href="${h}" class="${k === nav ? "on" : ""}">${l}</a>`).join("")}</nav>
-    <span class="muted">${esc(me.name)}</span><form method="post" action="/logout"><input type="hidden" name="csrf" value="${esc(me.csrf)}"><button class="ghost">${me.role === "admin" ? "Déconnexion" : "Log out"}</button></form></header>` : "";
+  const side = me ? `<aside class="side">${brand(admin ? "ADMINISTRATION" : "PRO · RESELLER")}<nav aria-label="${admin ? "Navigation" : "Main"}">${links.map(([h, l, k]) => `<a href="${h}" class="${k === nav ? "on" : ""}"${k === nav ? ' aria-current="page"' : ""}>${l}</a>`).join("")}</nav>
+    <div class="who"><b>${esc(me.name)}</b><form method="post" action="/logout"><input type="hidden" name="csrf" value="${esc(me.csrf)}"><button class="ghost">${admin ? "Déconnexion" : "Log out"}</button></form></div></aside>` : "";
   const fl = flash ? `<div class="flash ${flash.ok ? "ok" : "err"}">${esc(flash.text)}</div>` : "";
-  return `<!doctype html><html lang="${me?.role === "admin" ? "fr" : "en"}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="referrer" content="no-referrer"><title>${esc(title)} · Ultra TV Pro</title><style nonce="${n}">${CSS}</style></head><body>${head}${me ? `<main>${fl}${body}</main>` : body}</body></html>`;
+  return `<!doctype html><html lang="${admin ? "fr" : "en"}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer"><meta name="theme-color" content="#0a0a0c"><title>${esc(title)} · Ultra TV Pro</title>${FONTS}<style nonce="${n}">${CSS}</style></head><body>${me ? `<div class="shell">${side}<main>${fl}${body}</main></div>` : body}</body></html>`;
 }
 
 const csrf = (me) => `<input type="hidden" name="csrf" value="${esc(me.csrf)}">`;
@@ -114,7 +132,7 @@ function credentialsCard({ origin, login, password, fr = false, title }) {
 }
 
 export function loginPage(n, error) {
-  return page(n, "Sign in", `<div class="center"><div class="card"><h1>Ultra TV Pro</h1><p class="sub">Reseller panel</p>
+  return page(n, "Sign in", `<div class="center"><div class="card">${brand("PRO · RESELLER")}<h1>Sign in</h1><p class="sub">Reseller panel</p>
   ${error ? `<div class="flash err">${esc(error)}</div>` : ""}
   <form method="post" action="/login"><label>Login<input name="login" autocomplete="username" required autofocus></label>
   <label>Password<input name="password" type="password" autocomplete="current-password" required></label><button>Sign in</button></form></div></div>`);
@@ -304,7 +322,7 @@ export function adminResellerPage(n, me, { r, bal, entries, flash, password, ori
 }
 
 export function downloadPage(n, links) {
-  return page(n, "Download", `<div class="center"><div class="card" style="max-width:560px"><h1>Ultra TV Pro</h1>
+  return page(n, "Download", `<div class="center"><div class="card" style="max-width:560px">${brand("PRO")}<h1>Ultra TV Pro</h1>
   <p class="sub">Install the app, open it and give the device code shown on screen to your provider to activate it. Ultra TV Pro is a media player: it does not include any channel or content.</p>
   <div style="display:flex;flex-direction:column;gap:10px">
   ${links.map((l) => `<a class="btn ${l.primary ? "" : "ghost"}" href="${esc(l.url)}">${esc(l.label)}</a>`).join("")}

@@ -25,7 +25,7 @@ async function limited(env, key, limit, windowSec, asJson = true) {
 /** Réponse HTML avec CSP stricte : scripts et feuilles de style par nonce ; seuls les attributs style sont permis. */
 function html(body, n, status = 200, headers = {}) {
   const csp = [
-    "default-src 'none'", `script-src 'nonce-${n}'`, `style-src 'nonce-${n}'`, "style-src-attr 'unsafe-inline'",
+    "default-src 'none'", `script-src 'nonce-${n}'`, `style-src 'nonce-${n}' https://fonts.googleapis.com`, "style-src-attr 'unsafe-inline'", "font-src https://fonts.gstatic.com",
     "img-src 'self' data:", "form-action 'self'", "base-uri 'none'", "frame-ancestors 'none'",
   ].join("; ");
   return new Response(body, { status, headers: { "content-type": "text/html; charset=utf-8", "content-security-policy": csp, "cache-control": "no-store", ...headers } });
