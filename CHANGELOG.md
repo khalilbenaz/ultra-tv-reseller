@@ -2,7 +2,7 @@
 
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Versions suivant `VERSION`.
 
-## [Ultra TV Pro 1.2.49] — non publiée
+## [Ultra TV Pro 1.2.49] — 2026-10-06
 
 ### Nouveautés
 - Tableau de bord du compte (ultratv-config) : l'appareil y apparaît en « PRO », avec la licence Pro (statut, échéance,
