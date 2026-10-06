@@ -88,6 +88,18 @@ object ProText {
     fun title(a: com.ultratv.tv.nativeapp.data.license.Announcement) = if (a.kind == "renewal") renewTitle else a.title
     fun body(a: com.ultratv.tv.nativeapp.data.license.Announcement, who: String?) =
         if (a.kind == "renewal" && a.until != null) renewBody(DateFormat.getDateInstance(DateFormat.LONG).format(Date(a.until)), who) else a.body
+    /** Étiquette du type d'annonce choisi par le revendeur (rappel automatique : « Rappel »). */
+    fun tag(a: com.ultratv.tv.nativeapp.data.license.Announcement) = when {
+        a.kind == "renewal" -> t("Reminder", "Rappel", "تذكير")
+        a.category == "maintenance" -> t("Maintenance", "Maintenance", "صيانة")
+        a.category == "promo" -> t("Promotion", "Promotion", "عرض")
+        else -> t("Information", "Information", "معلومة")
+    }
+    fun tagColor(a: com.ultratv.tv.nativeapp.data.license.Announcement) = when {
+        a.kind == "renewal" || a.category == "maintenance" -> androidx.compose.ui.graphics.Color(0xFFFBBF5C)
+        a.category == "promo" -> androidx.compose.ui.graphics.Color(0xFF4ADE80)
+        else -> androidx.compose.ui.graphics.Color(0xFFFF6B75)
+    }
     fun st(s: String) = when (s) {
         "trial" -> t("Free trial", "Essai gratuit", "تجربة مجانية")
         "active" -> t("Active", "Active", "نشط")
@@ -241,6 +253,8 @@ private fun InboxCard(items: List<com.ultratv.tv.nativeapp.data.license.Announce
                     modifier = Modifier.fillMaxWidth(),
                 ) { f ->
                     Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(ProText.tag(a).uppercase(), color = if (f) Ux.OnFocus2 else ProText.tagColor(a), fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp)
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             if (!a.read) Box(Modifier.padding(end = 10.dp).background(Ux.Accent, RoundedCornerShape(50)).padding(5.dp))
                             Text(ProText.title(a), color = if (f) Ux.TextOnLight else Ux.Text, fontSize = 18.sp,

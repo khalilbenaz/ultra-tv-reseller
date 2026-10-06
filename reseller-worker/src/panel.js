@@ -236,8 +236,11 @@ export async function customerDetail(db, rid, customerId) {
 
 // ---- annonces ----
 
-export async function createMessage(db, rid, { target, title, body, days }, now = Date.now()) {
+export const MESSAGE_CATEGORIES = ["info", "maintenance", "promo"];
+
+export async function createMessage(db, rid, { target, title, body, days, category }, now = Date.now()) {
   const t = text(title, 120), b = text(body, 2000);
+  const cat = MESSAGE_CATEGORIES.includes(category) ? category : "info";
   if (!t || !b) throw new PanelError("message_empty");
   let tgt = "all";
   if (target === "network") {
@@ -248,8 +251,8 @@ export async function createMessage(db, rid, { target, title, body, days }, now 
   const d = Number(days);
   const exp = Number.isFinite(d) && d > 0 ? now + Math.min(d, 365) * 24 * 3600_000 : null;
   const id = uuid();
-  await db.prepare(`INSERT INTO message (id, reseller_id, target, title, body, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?)`)
-    .bind(id, rid, tgt, t, b, now, exp).run();
+  await db.prepare(`INSERT INTO message (id, reseller_id, target, title, body, created_at, expires_at, category) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
+    .bind(id, rid, tgt, t, b, now, exp, cat).run();
   return id;
 }
 
@@ -273,7 +276,7 @@ export async function deleteMessage(db, rid, id) {
 export async function inboxFor(db, ctx, now = Date.now()) {
   if (!ctx.reseller || !ctx.customer) return [];
   const { results } = await db.prepare(
-    `SELECT m.id, m.title, m.body, m.created_at AS at,
+    `SELECT m.id, m.title, m.body, m.created_at AS at, m.category,
             EXISTS (SELECT 1 FROM message_read x WHERE x.message_id = m.id AND x.device_id = ?4) AS read
        FROM message m
       WHERE ${VISIBLE_MESSAGES}

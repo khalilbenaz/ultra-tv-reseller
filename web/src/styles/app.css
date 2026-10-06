@@ -488,6 +488,9 @@ input[type="checkbox"]:indeterminate::after { content: ""; width: 0.55rem; heigh
 .inbox-count { background: var(--accent); color: #fff; border-radius: 999px; font-size: 0.75rem; padding: 0.05rem 0.5rem; }
 .inbox-item { display: flex; flex-direction: column; gap: 0.25rem; text-align: start; width: 100%; background: var(--surface-2, rgba(255,255,255,.04)); border: 0; border-radius: 0.875rem; padding: 0.75rem 1rem; margin-top: 0.5rem; color: inherit; cursor: pointer; font: inherit; }
 .inbox-item:hover, .inbox-item:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.inbox-tag { display: block; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #ff6b75; margin-bottom: 0.25rem; }
+.inbox-tag.maintenance, .inbox-tag.renewal { color: #fbbf5c; }
+.inbox-tag.promo { color: #4ade80; }
 .inbox-head { display: flex; justify-content: space-between; gap: 1rem; align-items: baseline; }
 .inbox-item:not(.unread) .inbox-head b { font-weight: 600; }
 .inbox-item.unread .inbox-head b::before { content: ""; display: inline-block; width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--accent); margin-inline-end: 0.5rem; vertical-align: middle; }

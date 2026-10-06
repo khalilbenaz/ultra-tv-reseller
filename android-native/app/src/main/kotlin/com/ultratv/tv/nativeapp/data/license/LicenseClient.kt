@@ -19,7 +19,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /** Annonce du revendeur, ou rappel automatique (`kind = "renewal"`, texte traduit par l'app à partir de `until`). */
-data class Announcement(val id: String, val title: String, val body: String, val at: Long, val read: Boolean, val kind: String = "message", val until: Long? = null)
+data class Announcement(val id: String, val title: String, val body: String, val at: Long, val read: Boolean, val kind: String = "message", val until: Long? = null, val category: String = "info")
 
 /** Nombre d'annonces non lues (pastille du menu « Abonnement »), partagé entre la porte de licence et l'écran. */
 object InboxBus {
@@ -117,7 +117,8 @@ class LicenseClient @Inject constructor(@ApplicationContext private val ctx: Con
                 val a = JSONObject(r.body!!.string()).optJSONArray("messages") ?: JSONArray()
                 (0 until a.length()).map { i -> a.getJSONObject(i) }.map {
                     Announcement(it.getString("id"), it.optString("title"), it.optString("body"), it.optLong("at"), it.optBoolean("read"),
-                        kind = it.optString("kind", "message").ifBlank { "message" }, until = if (it.has("until") && !it.isNull("until")) it.optLong("until") else null)
+                        kind = it.optString("kind", "message").ifBlank { "message" }, until = if (it.has("until") && !it.isNull("until")) it.optLong("until") else null,
+                        category = it.optString("category", "info").ifBlank { "info" })
                 }
             }
         }.getOrDefault(emptyList())

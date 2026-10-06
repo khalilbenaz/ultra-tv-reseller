@@ -36,6 +36,19 @@ export function announcementText(a: Announcement, from: string | null, lang: str
   return { title: r.title, body: r.body(d, from ?? r.who) };
 }
 
+const TAGS: Record<string, Record<string, string>> = {
+  en: { renewal: "Reminder", info: "Information", maintenance: "Maintenance", promo: "Promotion" },
+  fr: { renewal: "Rappel", info: "Information", maintenance: "Maintenance", promo: "Promotion" },
+  ar: { renewal: "تذكير", info: "معلومة", maintenance: "صيانة", promo: "عرض" },
+};
+
+/** Type d'annonce choisi par le revendeur (rappel automatique : « Rappel ») : clé CSS et libellé traduit. */
+export function announcementTag(a: Announcement, lang: string): { key: string; label: string } {
+  const key = a.kind === "renewal" ? "renewal" : a.category === "maintenance" || a.category === "promo" ? a.category : "info";
+  const t = TAGS[lang] ?? TAGS.en!;
+  return { key, label: t[key] ?? key };
+}
+
 /** Message lu (fenêtre de démarrage ou boîte de réception) : serveur et pastille. */
 export function noteRead(a: Announcement) {
   useLicense.setState((s) => ({ unread: s.unread.filter((m) => m.id !== a.id), inboxCount: Math.max(0, s.inboxCount - (a.read ? 0 : 1)) }));

@@ -48,10 +48,57 @@ tr:last-child td{border-bottom:0}tr:hover td{background:#17171c}.mono{font-famil
 .check input{width:18px;height:18px;min-height:0;margin:0;accent-color:var(--accent)}form.inline .check{align-self:flex-end}
 .acts{display:flex;flex-direction:column;gap:2px;padding:6px 22px}.act{display:grid;grid-template-columns:minmax(240px,auto) 1fr;gap:18px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)}
 .act:last-child{border-bottom:0}.act form{margin:0}.act button{width:100%}.act .muted{font-size:13px}
+.stepper{display:inline-flex;align-items:stretch;border:1px solid var(--line2);border-radius:10px;overflow:hidden;width:max-content}
+.stepper button{background:var(--field);color:var(--text);border-radius:0;min-width:44px;padding:0;font-size:18px}.stepper button:hover{background:var(--s2);filter:none}
+.stepper input{width:58px;text-align:center;border:0;border-left:1px solid var(--line2);border-right:1px solid var(--line2);border-radius:0;font-weight:700;font-size:16px;-moz-appearance:textfield}
+.stepper input::-webkit-inner-spin-button,.stepper input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.chips{display:flex;gap:8px;flex-wrap:wrap;border:0;margin:0;padding:0}.chips legend{font-size:13px;font-weight:600;color:#d4d4d8;padding:0 0 8px}
+.chips label{flex-direction:row;cursor:pointer}.chips input{position:absolute;opacity:0;width:1px;height:1px}
+.chips span{padding:9px 15px;border-radius:999px;border:1px solid var(--line2);color:#d4d4d8;font-weight:700;font-size:13px}
+.chips input:checked+span{background:var(--text);color:var(--bg);border-color:var(--text)}.chips input:focus-visible+span{outline:2px solid var(--accent);outline-offset:2px}
+.compose{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:20px;align-items:start}
+.tv{background:#050506;border:1px solid var(--line);border-radius:18px;padding:22px;display:flex;flex-direction:column;gap:14px}
+.tv-head{display:flex;justify-content:space-between;align-items:center}.tv-head b{font-family:Sora,sans-serif;font-size:18px}
+.tv-new{padding:3px 9px;border-radius:999px;background:var(--accent);color:#fff;font-size:12px;font-weight:700}
+.tv article{padding:16px;border-radius:12px;background:var(--surface);border:2px solid var(--text);display:flex;flex-direction:column;gap:6px;overflow-wrap:anywhere}
+.tv article.dim{border:1px solid var(--line)}.tv .tag{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
+.tv .tag.info{color:#ff6b75}.tv .tag.maintenance{color:var(--warn)}.tv .tag.promo{color:var(--ok)}.tv p{margin:0;font-size:14px;color:#d4d4d8;white-space:pre-line}
+.cat{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+.cat.info{background:#3a1216;color:#ff6b75}.cat.maintenance{background:#3a2a10;color:var(--warn)}.cat.promo{background:#1f3a2a;color:var(--ok)}
+.btn.wa{background:#1f3a2a;color:var(--ok)}
+@media (max-width:860px){.compose{grid-template-columns:1fr}}
 @media (max-width:860px){.shell{flex-direction:column}.side{width:auto;height:auto;position:static;padding:14px 16px;border-right:0;border-bottom:1px solid var(--line)}
 .brand{padding:0 0 10px}.side nav{flex-direction:row;flex-wrap:wrap}.side nav a{padding:8px 12px}.side .who{flex-direction:row;align-items:center;justify-content:space-between;padding-top:10px}.side .who button{width:auto}
 main{padding:24px 16px 56px}table{display:block;overflow-x:auto}}
 @media (max-width:640px){.act{grid-template-columns:1fr;gap:6px}}
+`;
+
+const JS = `
+document.addEventListener("click", (e) => {
+  const step = e.target.closest("[data-step]");
+  if (step) {
+    const i = step.parentElement.querySelector("input"), d = Number(step.dataset.step);
+    const v = Math.min(Number(i.max) || 99, Math.max(Number(i.min) || 1, (Number(i.value) || 0) + d));
+    i.value = String(v); i.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+  const cp = e.target.closest("[data-copy]");
+  if (cp) {
+    const t = document.getElementById(cp.dataset.copy), label = cp.textContent;
+    navigator.clipboard.writeText(t.value).then(() => { cp.textContent = cp.dataset.done; setTimeout(() => { cp.textContent = label; }, 2000); }, () => { t.select(); });
+  }
+});
+const pv = document.querySelector("[data-preview]");
+if (pv) {
+  const f = pv.closest("form") || document, out = (k) => document.querySelector("[data-pv=" + k + "]");
+  const tags = JSON.parse(pv.dataset.preview);
+  const render = () => {
+    const c = (f.querySelector("[name=category]:checked") || {}).value || "info";
+    out("title").textContent = f.querySelector("[name=title]").value || out("title").dataset.empty;
+    out("body").textContent = f.querySelector("[name=body]").value || out("body").dataset.empty;
+    out("tag").textContent = tags[c]; out("tag").className = "tag " + c;
+  };
+  f.addEventListener("input", render); f.addEventListener("change", render); render();
+}
 `;
 
 const LOGO = `<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="5" width="20" height="13" rx="2"/><path d="M10 9l5 2.5-5 2.5z"/></svg>`;
@@ -68,7 +115,7 @@ function page(n, title, body, { me = null, nav = "", flash = null } = {}) {
     <div class="who"><b>${esc(me.name)}</b><form method="post" action="/logout"><input type="hidden" name="csrf" value="${esc(me.csrf)}"><button class="ghost">${admin ? "Déconnexion" : "Log out"}</button></form></div></aside>` : "";
   const fl = flash ? `<div class="flash ${flash.ok ? "ok" : "err"}">${esc(flash.text)}</div>` : "";
   return `<!doctype html><html lang="${admin ? "fr" : "en"}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="referrer" content="no-referrer"><meta name="theme-color" content="#0a0a0c"><title>${esc(title)} · Ultra TV Pro</title>${FONTS}<style nonce="${n}">${CSS}</style></head><body>${me ? `<div class="shell">${side}<main>${fl}${body}</main></div>` : body}</body></html>`;
+<meta name="referrer" content="no-referrer"><meta name="theme-color" content="#0a0a0c"><title>${esc(title)} · Ultra TV Pro</title>${FONTS}<style nonce="${n}">${CSS}</style></head><body>${me ? `<div class="shell">${side}<main>${fl}${body}</main></div>` : body}<script nonce="${n}">${JS}</script></body></html>`;
 }
 
 const csrf = (me) => `<input type="hidden" name="csrf" value="${esc(me.csrf)}">`;
@@ -122,13 +169,15 @@ function credentialsCard({ origin, login, password, fr = false, title }) {
     ? `Bonjour,\n\nVotre espace revendeur Ultra TV Pro est prêt.\n\nAdresse : ${url}\nIdentifiant : ${login}\nMot de passe provisoire : ${password}\n\n1. Connectez-vous avec ces identifiants.\n2. Choisissez votre propre mot de passe (demandé à la première connexion).\n3. Lisez et signez le contrat revendeur (votre nom complet + « J'accepte »).\n4. Vous pouvez ensuite activer les appareils de vos clients avec vos crédits.`
     : `Hello,\n\nYour Ultra TV Pro reseller space is ready.\n\nAddress: ${url}\nLogin: ${login}\nTemporary password: ${password}\n\n1. Sign in with these credentials.\n2. Choose your own password (asked at first sign-in).\n3. Read and sign the reseller agreement (your full name + "I accept").\n4. You can then activate your customers' devices with your credits.`;
   const L = fr
-    ? { url: "Adresse de connexion", login: "Identifiant", pwd: "Mot de passe provisoire", note: "Affiché une seule fois : transmettez-le maintenant. Le revendeur devra le changer à sa première connexion.", copy: "Message à envoyer au revendeur" }
-    : { url: "Sign-in address", login: "Login", pwd: "Temporary password", note: "Shown only once: send it now. They must change it at first sign-in.", copy: "Message to send" };
+    ? { url: "Adresse de connexion", login: "Identifiant", pwd: "Mot de passe provisoire", note: "Affiché une seule fois : transmettez-le maintenant. Le revendeur devra le changer à sa première connexion.", copy: "Message à envoyer au revendeur", btn: "Copier le message", done: "Copié ✓", wa: "Envoyer par WhatsApp" }
+    : { url: "Sign-in address", login: "Login", pwd: "Temporary password", note: "Shown only once: send it now. They must change it at first sign-in.", copy: "Message to send", btn: "Copy the message", done: "Copied ✓", wa: "Send on WhatsApp" };
   return `<div class="card creds" style="margin-bottom:16px"><b>${esc(title)}</b>
   <table class="creds-table"><tr><th>${L.url}</th><td class="mono"><a href="${esc(url)}">${esc(url)}</a></td></tr>
   <tr><th>${L.login}</th><td class="mono">${esc(login)}</td></tr><tr><th>${L.pwd}</th><td><span class="secret">${esc(password)}</span></td></tr></table>
   <p class="muted" style="font-size:13px">${L.note}</p>
-  <label>${L.copy}<textarea readonly rows="11" style="width:100%;font-family:inherit">${esc(msg)}</textarea></label></div>`;
+  <label>${L.copy}<textarea id="creds-msg" readonly rows="11" style="width:100%;font-family:inherit">${esc(msg)}</textarea></label>
+  <div class="row" style="margin-top:12px"><button type="button" data-copy="creds-msg" data-done="${L.done}">${L.btn}</button>
+  <a class="btn wa" href="https://wa.me/?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener noreferrer">${L.wa}</a></div></div>`;
 }
 
 export function loginPage(n, error) {
@@ -182,12 +231,16 @@ function devicesSelect(name, cap, selected) {
   return `<select name="${name}">${Array.from({ length: cap }, (_, i) => i + 1).map((n) => `<option value="${n}"${n === selected ? " selected" : ""}>${n}</option>`).join("")}</select>`;
 }
 
+function stepper(name, min, max, value) {
+  return `<div class="stepper"><button type="button" data-step="-1" aria-label="Fewer">−</button><input name="${name}" type="number" inputmode="numeric" min="${min}" max="${max}" value="${value}" required><button type="button" data-step="1" aria-label="More">+</button></div>`;
+}
+
 function activateForm(me, customers, cap = 2) {
   return `<form method="post" action="/activate" class="card inline">${csrf(me)}
   <label>Device code<input class="code" name="code" placeholder="XXXX-XXXX" maxlength="11" required autocomplete="off"></label>
   <label>Customer<select name="customer"><option value="">New customer (1 credit)</option>${customers.filter((c) => c.devices < (c.max_devices ?? 2)).map((c) => `<option value="${esc(c.id)}">${esc(c.label || c.id.slice(0, 8))} — add device (free)</option>`).join("")}</select></label>
   <label>Label (optional)<input name="label" placeholder="e.g. Ahmed — room 2" maxlength="80"></label>
-  <label>Devices (new customer)${devicesSelect("devices", cap, Math.min(2, cap))}</label>
+  <label>Devices (new customer)${stepper("devices", 1, cap, Math.min(2, cap))}</label>
   <button>Activate</button></form>`;
 }
 
@@ -241,7 +294,7 @@ export function customerPage(n, me, { detail, flash, iptv = null, cap = 2 }) {
   </div>
   <h2>Devices (${devices.length} / ${l?.max_devices ?? 2})</h2>
   ${l && l.status !== "revoked" ? `<form method="post" action="${base}/max-devices" class="card inline" style="margin-bottom:12px">${csrf(me)}
-  <label>Devices allowed on this license (your limit: ${cap})${devicesSelect("max", Math.max(cap, l.max_devices ?? 2), l.max_devices ?? 2)}</label><button class="ghost">Update</button></form>` : ""}
+  <label>Devices allowed on this license (your limit: ${cap})${stepper("max", Math.max(1, devices.length), Math.max(cap, l.max_devices ?? 2), l.max_devices ?? 2)}</label><button class="ghost">Update</button></form>` : ""}
   ${devices.length ? `<table><tr><th>Code</th><th>Device</th><th>App</th><th>Last seen</th><th></th></tr>${devices.map((d) => `<tr><td class="mono">${esc(d.code)}</td>
   <td>${esc(d.platform || "")} ${esc(d.model || "")}</td><td>${esc(d.app_version || "—")}</td><td>${fmtDateTime(d.last_seen_at)}</td>
   <td><form method="post" action="${base}/devices/${esc(d.id)}/detach">${csrf(me)}<button class="ghost">Detach</button></form></td></tr>`).join("")}</table>` : `<p class="muted">No device.</p>`}
@@ -255,15 +308,27 @@ export function customerPage(n, me, { detail, flash, iptv = null, cap = 2 }) {
   { me, nav: "customers", flash });
 }
 
+const CATEGORIES = [["info", "Information"], ["maintenance", "Maintenance"], ["promo", "Promotion"]];
+const catLabel = (c) => (CATEGORIES.find(([k]) => k === c) || CATEGORIES[0])[1];
+
 export function messagesPage(n, me, { messages, customers, flash }) {
   return page(n, "Announcements", `<h1>Announcements</h1><p class="sub">Shown in the Ultra TV Pro inbox of your customers only (service updates, maintenance, renewal reminders, support notices).</p>
-  <form method="post" action="/messages" class="card" style="display:flex;flex-direction:column;gap:10px">${csrf(me)}
-  <div class="row"><label style="flex:1">Title<input name="title" maxlength="120" required></label>
-  <label>Send to<select name="target"><option value="all">All my customers</option>${me.is_distributor === 1 ? `<option value="network">My whole network (all sub-resellers' customers)</option>` : ""}${customers.map((c) => `<option value="${esc(c.id)}">${esc(c.label || c.id.slice(0, 8))}</option>`).join("")}</select></label>
-  <label>Visible for<select name="days"><option value="">No end</option><option value="1">1 day</option><option value="7" selected>7 days</option><option value="30">30 days</option></select></label></div>
-  <label>Message<textarea name="body" maxlength="2000" required></textarea></label><div><button>Send</button></div></form>
+  <form method="post" action="/messages" class="compose">${csrf(me)}
+  <div class="card" style="display:flex;flex-direction:column;gap:16px"><h2 style="margin:0">New announcement</h2>
+  <fieldset class="chips"><legend>Type</legend>${CATEGORIES.map(([k, l], i) => `<label><input type="radio" name="category" value="${k}"${i === 0 ? " checked" : ""}><span>${l}</span></label>`).join("")}</fieldset>
+  <label>Title<input name="title" maxlength="120" required placeholder="e.g. New sports channels"></label>
+  <label>Message<textarea name="body" maxlength="2000" required placeholder="What your customers will read on their TV."></textarea></label>
+  <div class="row"><label style="flex:1 1 220px">Send to<select name="target"><option value="all">All my customers (${customers.length})</option>${me.is_distributor === 1 ? `<option value="network">My whole network (all sub-resellers' customers)</option>` : ""}${customers.map((c) => `<option value="${esc(c.id)}">${esc(c.label || c.id.slice(0, 8))}</option>`).join("")}</select></label>
+  <label style="flex:1 1 160px">Visible for<select name="days"><option value="">No end</option><option value="1">1 day</option><option value="7" selected>7 days</option><option value="30">30 days</option></select></label></div>
+  <div style="display:flex;justify-content:flex-end"><button>Send</button></div></div>
+  <section aria-label="Preview on the TV" style="display:flex;flex-direction:column;gap:12px">
+  <span style="font-size:12px;font-weight:700;color:var(--t2);letter-spacing:.12em;text-transform:uppercase">Preview on the TV</span>
+  <div class="tv" data-preview='${esc(JSON.stringify(Object.fromEntries(CATEGORIES)))}'><div class="tv-head"><b>Inbox</b><span class="tv-new">New</span></div>
+  <article><span class="tag info" data-pv="tag">Information</span><b data-pv="title" data-empty="Your title">Your title</b><p data-pv="body" data-empty="Your message appears here.">Your message appears here.</p></article>
+  <article class="dim"><span class="tag maintenance">Reminder</span><b>Your license ends in 4 days</b><p>Contact your reseller to renew.</p></article></div></section>
+  </form>
   <h2>Sent</h2>${messages.length ? `<table><tr><th>Date</th><th>To</th><th>Message</th><th>Read by</th><th></th></tr>${messages.map((m) => `<tr><td>${fmtDateTime(m.created_at)}</td>
-  <td>${m.target === "all" ? "All" : m.target === "network" ? "Whole network" : esc(m.target_label || "1 customer")}</td><td><b>${esc(m.title)}</b><div class="muted">${esc(m.body).slice(0, 300)}</div>${m.expires_at ? `<div class="muted" style="font-size:12px">until ${fmtDate(m.expires_at)}</div>` : ""}</td>
+  <td>${m.target === "all" ? "All" : m.target === "network" ? "Whole network" : esc(m.target_label || "1 customer")}</td><td><span class="cat ${esc(m.category || "info")}">${catLabel(m.category)}</span><br><b>${esc(m.title)}</b><div class="muted">${esc(m.body).slice(0, 300)}</div>${m.expires_at ? `<div class="muted" style="font-size:12px">until ${fmtDate(m.expires_at)}</div>` : ""}</td>
   <td>${m.reads} device(s)</td><td><form method="post" action="/messages/${esc(m.id)}/delete">${csrf(me)}<button class="ghost">Delete</button></form></td></tr>`).join("")}</table>` : `<p class="muted">No announcement yet.</p>`}`,
   { me, nav: "messages", flash });
 }

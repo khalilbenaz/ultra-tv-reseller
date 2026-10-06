@@ -165,7 +165,7 @@ async function resellerRoute(env, me, path, m, form, url) {
     if (m === "POST" && action === "label") return attempt(to, "Saved.", () => P.setCustomerLabel(db, me.id, cid, form.get("label"), form.get("note")));
   }
   if (path === "/messages") {
-    if (m === "POST") return attempt("/messages", "Announcement sent.", () => P.createMessage(db, me.id, { target: form.get("target"), title: form.get("title"), body: form.get("body"), days: form.get("days") }));
+    if (m === "POST") return attempt("/messages", "Announcement sent.", () => P.createMessage(db, me.id, { target: form.get("target"), title: form.get("title"), body: form.get("body"), days: form.get("days"), category: form.get("category") }));
     const [messages, customers] = await Promise.all([P.listMessages(db, me.id), P.listCustomers(db, me.id)]);
     return view(V.messagesPage, me, { messages, customers, flash });
   }

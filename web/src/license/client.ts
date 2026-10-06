@@ -25,7 +25,7 @@ const K = { secret: "lic.secret", code: "lic.code", payload: "lic.payload", sig:
 const JSON_H = { "content-type": "application/json", accept: "application/json" };
 
 /** Annonce du revendeur, ou rappel automatique (`kind = "renewal"` : texte traduit par l'app à partir de `until`). */
-export interface Announcement { id: string; title: string; body: string; at: number; kind?: string; until?: number | null; read: boolean }
+export interface Announcement { id: string; title: string; body: string; at: number; kind?: string; until?: number | null; category?: string; read: boolean }
 
 async function secret(): Promise<string | null> {
   const enc = await getSetting<string>(K.secret, "");

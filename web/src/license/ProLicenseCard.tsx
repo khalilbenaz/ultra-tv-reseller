@@ -3,7 +3,7 @@
 import { usePrefs } from "@/state/prefs";
 import { AccountRow } from "@/screens/Account";
 import { useEffect, useState } from "react";
-import { announcementText, checkLicense, noteRead, openExternal, useLicense } from "./Gate";
+import { announcementTag, announcementText, checkLicense, noteRead, openExternal, useLicense } from "./Gate";
 import { fetchInbox, type Announcement } from "./client";
 import { daysLeft, supportLink } from "./logic";
 
@@ -61,10 +61,12 @@ export function ProInboxCard() {
       {items && !items.length && <p className="muted">{t.none}</p>}
       {(items ?? []).map((a) => {
         const txt = announcementText(a, from, lang);
+        const tag = announcementTag(a, lang);
         const expanded = open === a.id;
         return (
           <button key={a.id} className={`inbox-item${a.read ? "" : " unread"}${expanded ? " open" : ""}`}
             onClick={() => { setOpen(expanded ? null : a.id); if (!a.read) { noteRead(a); setItems((l) => (l ?? []).map((m) => (m.id === a.id ? { ...m, read: true } : m))); } }}>
+            <span className={`inbox-tag ${tag.key}`}>{tag.label}</span>
             <span className="inbox-head"><b>{txt.title}</b><span className="muted">{fmt(a.at)}</span></span>
             <span className="inbox-body">{txt.body}</span>
           </button>

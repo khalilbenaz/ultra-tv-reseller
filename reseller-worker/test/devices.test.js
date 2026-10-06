@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { registerDevice, loadDeviceContext, statusPayload, unreadCount } from "../src/license.js";
 import {
   acceptAgreement, activate, addCredits, createReseller, deviceCap, inboxFor, markRead, setDeviceCap, setLicenseDevices,
-  setDistributor, createSubReseller, setSubDeviceCap, updateProfile, detachDevice, customerDetail,
+  setDistributor, createSubReseller, setSubDeviceCap, updateProfile, detachDevice, customerDetail, createMessage,
 } from "../src/panel.js";
 
 const db = env.RESELLER;
@@ -87,5 +87,18 @@ describe("rappel de renouvellement automatique", () => {
     const r = await activate(db, rid, { code: d.code }, "rev");
     await db.prepare(`UPDATE license SET expires_at = ? WHERE customer_id = ?`).bind(Date.now() + 3 * 86_400_000, r.customerId).run();
     expect((await inboxFor(db, await loadDeviceContext(db, d.installSecret))).length).toBe(0);
+  });
+});
+
+describe("type d'annonce", () => {
+  it("le type choisi arrive dans la boîte de réception ; un type inconnu devient « info »", async () => {
+    const rid = await reseller();
+    const d = await device();
+    await activate(db, rid, { code: d.code }, "rev");
+    await createMessage(db, rid, { target: "all", title: "Promo", body: "-20 %", category: "promo" });
+    await createMessage(db, rid, { target: "all", title: "Autre", body: "x", category: "<script>" });
+    const box = await inboxFor(db, await loadDeviceContext(db, d.installSecret));
+    expect(box.find((m) => m.title === "Promo").category).toBe("promo");
+    expect(box.find((m) => m.title === "Autre").category).toBe("info");
   });
 });
