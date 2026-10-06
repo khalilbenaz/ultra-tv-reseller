@@ -2,12 +2,13 @@
 
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Versions suivant `VERSION`.
 
-## [Ultra TV Pro 1.2.31] — 2026-10-06
+## [Ultra TV Pro 1.2.32] — 2026-10-06
 
 ### Corrigé
-- Fusion de main (1.2.30 Android TV) : programme en cours affiché dès l'ouverture du Direct et au changement de
+- Fusion de main (1.2.30 et 1.2.31 Android TV) : programme en cours affiché dès l'ouverture du Direct et au changement de
   catégorie, guide TV rechargé quand l'application reste ouverte (box en veille), chaînes en double numérotées « #2 »,
-  « #3 »…
+  « #3 »…, Réglages › Catégories : la liste défile avec la catégorie déplacée (sélection conservée).
+  La 1.2.31 (tag pro-v1.2.31) n'a pas été publiée.
 
 ## [Ultra TV Pro 1.2.30] — 2026-10-06
 
@@ -23,6 +24,12 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Ver
 - Rappels de renouvellement automatiques du revendeur (traduits), appareils utilisés / autorisés affichés.
 - Fusion de main : menu adaptatif, liste d'épisodes, sous-titres non forcés, épisode suivant automatique, mise à jour
   macOS sans signature Apple (dépôt de distribution Pro).
+
+## [1.2.31] — 2026-10-06 (Android TV)
+
+### Corrigé
+- Réglages › Catégories : en déplaçant une catégorie au-delà du haut (ou du bas) de l'écran, la liste défile avec
+  elle ; la sélection et la position ne disparaissent plus.
 
 ## [1.2.30] — 2026-10-06 (Android TV)
 
