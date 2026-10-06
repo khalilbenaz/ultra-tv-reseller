@@ -2,7 +2,7 @@
 
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Versions suivant `VERSION`.
 
-## [Ultra TV Pro 1.2.44] — non publiée
+## [Ultra TV Pro 1.2.44] — 2026-10-06
 
 ### Corrigé
 - Fusion de main (1.2.44 Android TV), régressions des versions 1.2.28 à 1.2.43 : le replay et le différé ne
