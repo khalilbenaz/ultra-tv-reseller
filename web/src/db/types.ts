@@ -72,6 +72,8 @@ export interface ChannelRow {
   name: string;
   display: string;
   norm: string;
+  /** Index de recherche par mot (voir wordKeys) ; absent sur les lignes d'avant la version 2 du schéma. */
+  words?: string[];
   country: string | null;
   q: number;
   flags: number;
@@ -92,6 +94,7 @@ export interface MovieRow {
   name: string;
   title: string;
   norm: string;
+  words?: string[];
   year: number | null;
   poster: string | null;
   rating: number;
@@ -108,6 +111,7 @@ export interface SeriesRow {
   name: string;
   title: string;
   norm: string;
+  words?: string[];
   year: number | null;
   poster: string | null;
   backdrop: string | null;
