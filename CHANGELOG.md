@@ -5,7 +5,8 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Ver
 ## [Ultra TV Pro 1.2.33] — non publiée
 
 ### Corrigé
-- Fusion de main (1.2.32 Android TV) : en direct, OK affiche la liste des chaînes sans délai.
+- Fusion de main (1.2.32 et 1.2.33 Android TV) : en direct, OK affiche la liste des chaînes sans délai ; Retour quitte
+  le lecteur au lieu de rappeler la chaîne précédente (touche « chaîne précédente » pour cela).
 
 ## [Ultra TV Pro 1.2.32] — 2026-10-06
 
@@ -29,6 +30,13 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Ver
 - Rappels de renouvellement automatiques du revendeur (traduits), appareils utilisés / autorisés affichés.
 - Fusion de main : menu adaptatif, liste d'épisodes, sous-titres non forcés, épisode suivant automatique, mise à jour
   macOS sans signature Apple (dépôt de distribution Pro).
+
+## [1.2.33] — 2026-10-06 (Android TV)
+
+### Modifié
+- Lecteur (direct) : Retour ferme le panneau ouvert puis revient au menu ; il ne ramène plus à la chaîne précédente
+  (touche « chaîne précédente » de la télécommande pour cela). Le bandeau d'information affiché après un zap ne retient
+  plus Retour.
 
 ## [1.2.32] — 2026-10-06 (Android TV)
 
