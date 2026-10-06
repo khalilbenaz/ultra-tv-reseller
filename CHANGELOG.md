@@ -2,12 +2,17 @@
 
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Versions suivant `VERSION`.
 
-## [Ultra TV Pro 1.2.42] — non publiée
+## [Ultra TV Pro 1.2.43] — non publiée
+
+### Corrigé
+- Fusion de main (1.2.43 Android TV) : « Arrêter » un enregistrement en cours ne le supprime plus, chaînes M3U au même
+  tvg-id toutes conservées, fiche série sans rechargement inutile des épisodes, liste du Direct recalculée seulement
+  si les catégories masquées changent, filtre adulte moins large (« héros », « zéro »… ne sont plus filtrés).
 
 ### Amélioré
-- Fusion de main (1.2.42 Android TV) : mémoire mieux tenue (caches bornés, client d'images partagé), veille plus
-  économe (surveillance, partage entre appareils et Google TV ralentis en arrière-plan), planification des
-  synchronisations mémorisée.
+- Fusion de main (1.2.42 et 1.2.43 Android TV) : mémoire mieux tenue (caches bornés, client d'images partagé), veille
+  plus économe (surveillance, partage entre appareils et Google TV ralentis en arrière-plan), planification des
+  synchronisations mémorisée, recherche et accueil allégés.
 
 ## [Ultra TV Pro 1.2.41] — 2026-10-06
 
@@ -68,6 +73,29 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Ver
 - Rappels de renouvellement automatiques du revendeur (traduits), appareils utilisés / autorisés affichés.
 - Fusion de main : menu adaptatif, liste d'épisodes, sous-titres non forcés, épisode suivant automatique, mise à jour
   macOS sans signature Apple (dépôt de distribution Pro).
+
+## [1.2.43] — 2026-10-06 (Android TV)
+
+### Corrigé
+- Enregistrements : appuyer sur un enregistrement en cours l'arrête, et sur un enregistrement programmé l'annule. Avant,
+  la ligne était supprimée pendant que l'enregistrement continuait.
+- Playlists M3U : les chaînes partageant un même tvg-id (variantes HD / SD, plusieurs groupes) ne s'écrasent plus.
+- Fiche série : plus de clignotement ni de perte du focus à l'ouverture. Les épisodes sont remplacés en une transaction,
+  et seulement s'ils ont changé ; la fiche est retéléchargée au plus toutes les 30 min.
+- Direct : la liste ne se recharge plus en boucle pendant une synchro (filtre de dédoublonnage inopérant sur un tableau).
+- Contrôle parental : « Hero », « Heroes », « Zero »… ne sont plus pris pour des catégories adultes.
+
+### Amélioré
+- Recherche :
+  - chaînes, films et séries s'affichent tout de suite, les programmes du guide (plus lents) ensuite et à partir de
+    3 caractères ;
+  - les suggestions Google TV ne bloquent plus le lanceur (0,8 s au plus, sans le guide).
+- Accueil :
+  - rangées relues au plus une fois par seconde pendant la synchro ;
+  - chaînes de repli observées seulement sans favori ;
+  - seul le pourcentage de synchro est suivi.
+- Affiches TMDB : une erreur réseau n'est pas réessayée pendant 2 min pour un même titre.
+- Divers : fuseau horaire et requêtes d'images mis en cache ; expressions régulières des titres créées une seule fois.
 
 ## [1.2.42] — 2026-10-06 (Android TV)
 
