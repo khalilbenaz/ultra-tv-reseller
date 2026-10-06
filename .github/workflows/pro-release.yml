@@ -34,6 +34,18 @@ jobs:
       - name: Tests unitaires
         run: chmod +x gradlew && ./gradlew testDebugUnitTest -PULTRA_EDITION=pro --console=plain
 
+      # En cas d'échec, le rapport garde la pile complète (dont les exceptions « Suppressed » d'un
+      # UncaughtExceptionsBeforeTest, qui désignent le test fautif) que le journal Gradle ne montre pas.
+      - name: Rapport des tests (échec)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pro-android-test-reports
+          path: |
+            android-native/app/build/reports/tests/
+            android-native/app/build/test-results/
+          retention-days: 7
+
       - name: Build release (édition Pro)
         run: ./gradlew assembleRelease -PULTRA_EDITION=pro --console=plain --stacktrace
 
