@@ -2,10 +2,12 @@
 
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Versions suivant `VERSION`.
 
-## [Ultra TV Pro 1.2.36] — non publiée
+## [Ultra TV Pro 1.2.37] — 2026-10-06
 
-### Amélioré
-- Fusion de main (1.2.36 Android TV) : zapping plus rapide (lecteur réutilisé d'une chaîne à l'autre).
+### Corrigé
+- Fusion de main (1.2.36 et 1.2.37 Android TV) : **plantage du lecteur VLC** en version publiée (règles R8 de libVLC
+  manquantes), reconnexion automatique du direct quand le serveur coupe le flux, zapping plus rapide (lecteur réutilisé,
+  ExoPlayer et VLC), Favoris sans chargement du catalogue entier.
 
 ## [Ultra TV Pro 1.2.35] — 2026-10-06
 
@@ -41,6 +43,21 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Ver
 - Rappels de renouvellement automatiques du revendeur (traduits), appareils utilisés / autorisés affichés.
 - Fusion de main : menu adaptatif, liste d'épisodes, sous-titres non forcés, épisode suivant automatique, mise à jour
   macOS sans signature Apple (dépôt de distribution Pro).
+
+## [1.2.37] — 2026-10-06 (Android TV)
+
+### Corrigé
+- Lecteur VLC : l'application plantait dès qu'on passait sur VLC dans les versions publiées. R8 renommait les classes
+  que la couche native de libVLC retrouve par leur nom (règles de conservation ajoutées, test de garde).
+- Direct : reconnexion automatique quand le serveur ferme la session, que le réseau coupe ou que le flux reste figé
+  plus de 12 s (délais croissants, 8 tentatives) ; avant, le flux s'arrêtait net.
+- Favoris : l'écran ne charge plus tout le catalogue (180 000 films) pour n'afficher que les favoris.
+
+### Amélioré
+- VLC : démarrage d'une chaîne avec le tampon de démarrage (1 à 1,5 s) au lieu du tampon minimum (5 s), et moteur
+  réutilisé au zap comme Media3.
+- Lecteur : plus de flou plein écran à chaque zap sur les box modestes ; l'écran n'est plus redessiné deux fois par
+  seconde en direct ; la liste des chaînes se prépare après la première image ; délais réseau du direct raccourcis.
 
 ## [1.2.36] — 2026-10-06 (Android TV)
 

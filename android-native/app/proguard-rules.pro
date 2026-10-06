@@ -45,3 +45,13 @@
 # Bouncy Castle (vérification Ed25519 des licences, API légère) : classes JCA/JNDI optionnelles absentes sur Android.
 -dontwarn org.bouncycastle.**
 -dontwarn javax.naming.**
+
+# LibVLC : sa couche JNI (libvlcjni.so) retrouve classes, champs (mInstance) et méthodes (dispatchEventFromNative,
+# create*FromNative…) Java PAR LEUR NOM. L'AAR ne fournit aucune règle : sans celles-ci, R8 les renomme ou les retire
+# et l'application plante dès que le lecteur VLC est créé — en release seulement (le debug n'est pas minifié).
+-keep class org.videolan.libvlc.** { *; }
+-keep interface org.videolan.libvlc.** { *; }
+-dontwarn org.videolan.libvlc.**
+
+# Client RTMP (AAR sans règles) : même mécanique JNI.
+-keep class io.antmedia.rtmp_client.** { *; }
