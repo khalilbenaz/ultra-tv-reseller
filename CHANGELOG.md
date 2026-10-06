@@ -2,9 +2,11 @@
 
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Versions suivant `VERSION`.
 
-## [Ultra TV Pro 1.2.47] — non publiée
+## [Ultra TV Pro 1.2.48] — non publiée
 
 ### Corrigé
+- Fusion de main (1.2.48 Android TV) : lecture VLC sans saccades (décodage matériel direct en mode Auto, images en
+  retard de nouveau sautées, tampon du direct à 2 s).
 - Fusion de main (1.2.47 Android TV) : Retour depuis le lecteur masque l'image tout de suite.
 - Abonnement (Pro) : l'abonnement IPTV se recharge tout seul quand la source active change.
 - Fusion de main (1.2.46 Android TV) : valider un choix dans une fenêtre (Sources, Abonnement…) n'ouvre plus le menu
@@ -92,6 +94,15 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Ver
 - Rappels de renouvellement automatiques du revendeur (traduits), appareils utilisés / autorisés affichés.
 - Fusion de main : menu adaptatif, liste d'épisodes, sous-titres non forcés, épisode suivant automatique, mise à jour
   macOS sans signature Apple (dépôt de distribution Pro).
+
+## [1.2.48] — 2026-10-06 (Android TV)
+
+### Corrigé
+- Lecteur VLC : la lecture saccadait.
+  - L'affichage direct du décodeur matériel était désactivé en mode Auto : chaque image était recopiée par le
+    processeur. Il n'est désormais désactivé qu'en mode Logiciel.
+  - VLC peut de nouveau sauter une image en retard au lieu d'accumuler le retard.
+  - Le tampon réseau du direct passe à 2 s (1 s depuis la 1.2.37 : trop peu de marge).
 
 ## [1.2.47] — 2026-10-06 (Android TV)
 
