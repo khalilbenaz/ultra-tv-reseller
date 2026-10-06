@@ -5,6 +5,7 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Ver
 ## [Ultra TV Pro 1.2.45] — non publiée
 
 ### Corrigé
+- Fusion de main (1.2.45 Android TV) : pastille de synchronisation du menu plus coupée.
 - Fusion de main (bureau 1.2.29) : Mac, Windows et Linux, guide des chaînes à identifiant numérique, catalogues
   orphelins purgés, une seule connexion par serveur au zapping, recherche indexée par début de mot, lecteur et listes
   allégés, mise à jour Mac plus robuste (téléchargement partiel nettoyé).
@@ -83,6 +84,12 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Ver
 - Rappels de renouvellement automatiques du revendeur (traduits), appareils utilisés / autorisés affichés.
 - Fusion de main : menu adaptatif, liste d'épisodes, sous-titres non forcés, épisode suivant automatique, mise à jour
   macOS sans signature Apple (dépôt de distribution Pro).
+
+## [1.2.45] — 2026-10-06 (Android TV)
+
+### Corrigé
+- Menu : la pastille de synchro sous « Paramètres » affichait « Synchronisation · 25 % » coupé. Le pourcentage étant
+  déjà dans la pastille, le libellé n'affiche plus que « Synchronisation » (points de suspension si nécessaire).
 
 ## [Bureau 1.2.29] — 2026-10-06
 
