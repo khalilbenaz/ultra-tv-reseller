@@ -192,7 +192,7 @@ async function networkRoute(env, me, path, m, form, url) {
       try {
         await P.createSubReseller(db, me.id, { login: form.get("login"), name: form.get("name"), passwordHash: await hashPassword(password) });
       } catch (e) { if (e instanceof P.PanelError) return back("/network", { e: e.code }); throw e; }
-      return view(V.networkPage, me, { stats: await P.networkStats(db, me.id), subs: await P.listSubResellers(db, me.id), origin: url.origin, created: { login: String(form.get("login")).trim().toLowerCase(), password }, origin: url.origin });
+      return view(V.networkPage, me, { stats: await P.networkStats(db, me.id), subs: await P.listSubResellers(db, me.id), origin: url.origin, created: { login: String(form.get("login")).trim().toLowerCase(), password } });
     }
     return view(V.networkPage, me, { stats: await P.networkStats(db, me.id), subs: await P.listSubResellers(db, me.id), flash });
   }
