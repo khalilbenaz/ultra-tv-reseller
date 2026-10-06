@@ -2,9 +2,11 @@
 
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Versions suivant `VERSION`.
 
-## [Ultra TV Pro 1.2.46] — non publiée
+## [Ultra TV Pro 1.2.47] — non publiée
 
 ### Corrigé
+- Fusion de main (1.2.47 Android TV) : Retour depuis le lecteur masque l'image tout de suite.
+- Abonnement (Pro) : l'abonnement IPTV se recharge tout seul quand la source active change.
 - Fusion de main (1.2.46 Android TV) : valider un choix dans une fenêtre (Sources, Abonnement…) n'ouvre plus le menu
   latéral.
 
@@ -90,6 +92,15 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Ver
 - Rappels de renouvellement automatiques du revendeur (traduits), appareils utilisés / autorisés affichés.
 - Fusion de main : menu adaptatif, liste d'épisodes, sous-titres non forcés, épisode suivant automatique, mise à jour
   macOS sans signature Apple (dépôt de distribution Pro).
+
+## [1.2.47] — 2026-10-06 (Android TV)
+
+### Corrigé
+- Lecteur : en appuyant sur Retour, l'image restait affichée un moment avant le menu. La vidéo (couche à part) est
+  maintenant mise en pause et masquée immédiatement, puis le lecteur se ferme. Même chose pour la fermeture par la
+  minuterie de sommeil et par l'écran d'erreur.
+- Abonnement : il se recharge tout seul quand on change de source par défaut (ou ses identifiants), sans avoir à
+  appuyer sur « Actualiser ».
 
 ## [1.2.46] — 2026-10-06 (Android TV)
 

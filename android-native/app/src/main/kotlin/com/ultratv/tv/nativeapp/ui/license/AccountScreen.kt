@@ -43,7 +43,9 @@ import com.ultratv.tv.nativeapp.ui.design.Ux
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import java.text.DateFormat
 import java.util.Date
@@ -127,14 +129,31 @@ class AccountViewModel @Inject constructor(
     private val _ui = MutableStateFlow(AccountUi(license = license.cached()))
     val ui: StateFlow<AccountUi> = _ui
 
-    init { refresh() }
+    private var job: kotlinx.coroutines.Job? = null
+
+    // Suit la source ACTIVE : changer de source (ou ses identifiants) recharge l'abonnement IPTV tout seul — l'écran est
+    // gardé en mémoire par la navigation, il n'était lu qu'à sa création (même principe que l'écran de l'édition standard).
+    init {
+        viewModelScope.launch {
+            providers.observeProviders()
+                .map { l -> l.firstOrNull { it.active } ?: l.firstOrNull() }
+                .distinctUntilChanged { a, b -> a?.id == b?.id && a?.kind == b?.kind && a?.baseUrl == b?.baseUrl && a?.username == b?.username && a?.password == b?.password }
+                .collect { load(it) }
+        }
+    }
 
     fun refresh() {
-        _ui.value = _ui.value.copy(loading = true)
         viewModelScope.launch {
-            val lic = if (license.enabled) runCatching { license.refresh() }.getOrNull() ?: license.cached() else null
             val list = providers.observeProviders().first()
-            val p = list.firstOrNull { it.active } ?: list.firstOrNull()
+            load(list.firstOrNull { it.active } ?: list.firstOrNull())
+        }
+    }
+
+    private fun load(p: com.ultratv.tv.nativeapp.data.db.ProviderEntity?) {
+        job?.cancel()
+        _ui.value = _ui.value.copy(loading = true)
+        job = viewModelScope.launch {
+            val lic = if (license.enabled) runCatching { license.refresh() }.getOrNull() ?: license.cached() else null
             val acc = if (p != null && p.kind == "XTREAM") xtream.fetchAccount(p) else null
             val inbox = if (license.enabled && lic != null) runCatching { license.inbox() }.getOrDefault(emptyList()) else emptyList()
             _ui.value = AccountUi(license = lic, inbox = inbox, sourceName = p?.name, iptv = acc, iptvFailed = p != null && p.kind == "XTREAM" && acc == null, loading = false)
