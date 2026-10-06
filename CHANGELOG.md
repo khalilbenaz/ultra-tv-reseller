@@ -2,7 +2,7 @@
 
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Versions suivant `VERSION`.
 
-## [Ultra TV Pro 1.2.40] — non publiée
+## [Ultra TV Pro 1.2.40] — 2026-10-06
 
 ### Amélioré
 - Fusion de main (1.2.38 à 1.2.40 Android TV) : base locale plus rapide (index revus, guide dédoublonné et purgé des
