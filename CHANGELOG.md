@@ -2,7 +2,7 @@
 
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Versions suivant `VERSION`.
 
-## [Ultra TV Pro 1.2.45] — non publiée
+## [Ultra TV Pro 1.2.45] — 2026-10-06
 
 ### Corrigé
 - Fusion de main (1.2.45 Android TV) : pastille de synchronisation du menu plus coupée.
