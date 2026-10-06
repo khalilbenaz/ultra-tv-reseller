@@ -1,6 +1,6 @@
 # Programme revendeur — conception du pilote
 
-> Dépôt **privé** `ultra-tv-reseller`, branche `reseller-pilot`. Rien de ce dossier ne doit partir sur le dépôt public
+> Dépôt **privé** `ultra-tv-reseller`, branche `main`. Rien de ce dossier ne doit partir sur le dépôt public
 > (un hook `pre-push` local bloque les branches `reseller*` vers `ultra-tv`).
 
 ## 1. Ce qu'on construit (et ce qu'on ne construit pas)

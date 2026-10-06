@@ -245,10 +245,10 @@ Statuts : `trial`, `active`, `expired`, `suspended`. Le statut contient aussi `d
 ## Construire et publier une version Pro
 
 1. Mettre à jour [`VERSION`](VERSION) (la version Pro suit celle de l'application publique).
-2. Pousser la branche puis le tag **vers le dépôt privé** :
+2. Pousser `main` puis le tag **vers le dépôt privé** (`origin`) :
    ```bash
-   git push reseller reseller-pilot
-   git tag pro-vX.Y.Z && git push reseller pro-vX.Y.Z
+   git push origin main
+   git tag pro-vX.Y.Z && git push origin pro-vX.Y.Z
    ```
    Le workflow **Pro release** construit Android (APK par ABI signés avec la clé Pro, vérification anti-clé de débogage)
    et le bureau (macOS universel, Windows x64, Linux x64), puis crée la **release `pro-vX.Y.Z` de ce dépôt privé**
@@ -280,16 +280,17 @@ et embarquée dans les applications.
 
 ## Suivre l'application publique
 
-Les correctifs et nouveautés de l'application publique arrivent par fusion de `main` :
+Ce dépôt n'a qu'une branche, `main` (l'édition Pro). Les correctifs et nouveautés de l'application publique
+arrivent par fusion de la branche `main` du dépôt public, déclaré comme remote **en lecture seule** :
 
 ```bash
-git checkout main && git pull origin main
-git checkout reseller-pilot && git merge main
+git remote add public https://github.com/khalilbenaz/ultra-tv.git   # une fois
+git remote set-url --push public DISABLED                            # une fois : interdit tout push vers le public
+git fetch public && git merge public/main
 ```
 
 En cas de conflit, garder la version Pro des fichiers propres à l'édition Pro (tableau ci-dessus) et la version publique
-pour le reste. Après `git checkout main`, supprimer le dossier `reseller-worker/` resté sur le disque (non suivi sur `main`)
-pour ne jamais l'ajouter par erreur au dépôt public.
+pour le reste. Ne jamais pousser ce dépôt vers `public` : il contient le panneau revendeur et les clés publiques Pro.
 
 ## Garde-fous
 
