@@ -2,6 +2,11 @@
 
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Versions suivant `VERSION`.
 
+## [Ultra TV Pro 1.2.33] — non publiée
+
+### Corrigé
+- Fusion de main (1.2.32 Android TV) : en direct, OK affiche la liste des chaînes sans délai.
+
 ## [Ultra TV Pro 1.2.32] — 2026-10-06
 
 ### Corrigé
@@ -24,6 +29,12 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Ver
 - Rappels de renouvellement automatiques du revendeur (traduits), appareils utilisés / autorisés affichés.
 - Fusion de main : menu adaptatif, liste d'épisodes, sous-titres non forcés, épisode suivant automatique, mise à jour
   macOS sans signature Apple (dépôt de distribution Pro).
+
+## [1.2.32] — 2026-10-06 (Android TV)
+
+### Corrigé
+- Lecteur : la liste des chaînes (OK pendant une chaîne en direct) s'ouvre tout de suite ; elle est tenue à jour
+  pendant la lecture au lieu d'être recalculée (file, guide, compteurs de catégories) à chaque ouverture.
 
 ## [1.2.31] — 2026-10-06 (Android TV)
 
