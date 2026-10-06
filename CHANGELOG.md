@@ -2,6 +2,12 @@
 
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Versions suivant `VERSION`.
 
+## [Ultra TV Pro 1.2.38] — non publiée
+
+### Amélioré
+- Fusion de main (1.2.38 Android TV) : base locale plus rapide (index revus, guide dédoublonné et purgé des programmes
+  passés, journal WAL), test de non-régression des règles R8.
+
 ## [Ultra TV Pro 1.2.37] — 2026-10-06
 
 ### Corrigé
@@ -43,6 +49,20 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Ver
 - Rappels de renouvellement automatiques du revendeur (traduits), appareils utilisés / autorisés affichés.
 - Fusion de main : menu adaptatif, liste d'épisodes, sous-titres non forcés, épisode suivant automatique, mise à jour
   macOS sans signature Apple (dépôt de distribution Pro).
+
+## [1.2.38] — 2026-10-06 (Android TV)
+
+### Amélioré
+- Base de données (version 16) :
+  - les pages Films / Séries ne retrient plus toute la catégorie à chaque page chargée, grâce à des index alignés sur
+    leur ordre ;
+  - le mode WAL est imposé : la synchro ne bloque plus les lectures sur les box « peu de RAM ».
+- Guide des programmes, beaucoup moins gourmand en stockage :
+  - les programmes terminés depuis plus de 3 h sont supprimés après chaque synchro et au retour sur l'application ;
+  - les doublons sont interdits (un programme par chaîne et par heure de début) et ceux existants sont supprimés à la
+    mise à jour ;
+  - les descriptions du guide court sont limitées comme celles du guide complet ;
+  - la vérification « le guide couvre-t-il les heures à venir ? » ne parcourt plus toute la table.
 
 ## [1.2.37] — 2026-10-06 (Android TV)
 
