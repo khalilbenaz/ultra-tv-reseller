@@ -44,7 +44,15 @@ class ResellerProvisioner @Inject constructor(
     private val repo: ProviderRepository,
     private val sync: SyncCoordinator,
 ) {
-    private val prefs = ctx.getSharedPreferences("pro_sources", Context.MODE_PRIVATE)
+    private val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+
+    companion object {
+        const val PREFS = "pro_sources"
+
+        /** Sources locales posées par le revendeur (liées dans « pro_sources »). */
+        fun managedIds(ctx: Context): Set<Long> =
+            ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).all.filterKeys { it.startsWith("pid.") }.values.mapNotNull { it as? Long }.toSet()
+    }
 
     private fun links(): Map<String, Pair<Long, Long>> = prefs.all.keys.filter { it.startsWith("pid.") }.associate { k ->
         val id = k.removePrefix("pid.")

@@ -53,6 +53,8 @@ class CloudSyncManager @Inject constructor(
     private val sync: SyncCoordinator,
     private val categories: com.ultratv.tv.nativeapp.data.repo.CategoryManager,
     private val statusBus: com.ultratv.tv.nativeapp.data.repo.SyncStatusBus,
+    // Édition Pro : statut de licence et sources du revendeur sur le tableau de bord (sans effet en standard).
+    private val pro: com.ultratv.tv.nativeapp.data.license.ProCloudReporter,
 ) {
     private val mutex = Mutex()
     private val _state = MutableStateFlow(CloudSyncState(lastSyncAt = links.lastSyncAt, devices = links.devices(), selfId = links.selfId()))
@@ -89,6 +91,7 @@ class CloudSyncManager @Inject constructor(
         _state.value = _state.value.copy(syncing = true, failed = false)
         try {
             val fetched = source.withToken(base) { t -> client.fetch(base, t, if (force) null else links.etag()) }
+            stateScope.launch { runCatching { source.withToken(base) { t -> pro.report(base, t) } } }
             if (fetched.notModified) {
                 links.lastSyncAt = System.currentTimeMillis()
                 _state.value = _state.value.copy(syncing = false, lastSyncAt = links.lastSyncAt, added = 0, updated = 0, removed = 0)
@@ -388,7 +391,9 @@ class CloudSyncManager @Inject constructor(
         if (p.kind != "XTREAM" && p.kind != "M3U") return false
         val local = LocalProvider(p.id, p.kind, p.name, p.baseUrl, p.username, p.password, "", links.cloudIdOf(localId))
         return try {
-            val resp = source.withToken(base) { t -> client.put(base, t, CloudSyncLogic.uploadBody(local, shareWith, local.cloudId)) }
+            val body = CloudSyncLogic.uploadBody(local, shareWith, local.cloudId)
+                .let { if (pro.managed(localId)) JSONObject(it).put("managed", "reseller").toString() else it }
+            val resp = source.withToken(base) { t -> client.put(base, t, body) }
             val cid = JSONObject(resp).getJSONObject("provider").getString("id")
             val n = shareWith?.let { (it + listOfNotNull(links.selfId())).toSet().size } ?: _state.value.deviceCount
             links.link(localId, cid, p.name, n)

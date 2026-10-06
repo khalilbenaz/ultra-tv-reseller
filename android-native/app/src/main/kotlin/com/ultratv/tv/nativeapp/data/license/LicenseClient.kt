@@ -45,6 +45,13 @@ class LicenseClient @Inject constructor(@ApplicationContext private val ctx: Con
 
     fun code(): String? = prefs.getString("code", null)
 
+    /** Dernier statut signé reçu, TEL QUEL (enregistré seulement après vérification) : payload → sig. */
+    fun signed(): Pair<String, String>? {
+        val p = prefs.getString("payload", null) ?: return null
+        val s = prefs.getString("sig", null) ?: return null
+        return p to s
+    }
+
     /** Dernier statut signé connu (vérifié à nouveau à chaque lecture). */
     fun cached(): LicensePayload? {
         val p = prefs.getString("payload", null) ?: return null

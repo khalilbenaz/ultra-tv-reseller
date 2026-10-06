@@ -41,6 +41,12 @@ export async function cachedLicense(): Promise<LicensePayload | null> {
   return p && s ? verifyLicense(p, s, LICENSE_PUBKEY) : null;
 }
 
+/** Dernier statut signé reçu, TEL QUEL (il n'est enregistré qu'après vérification), pour le tableau de bord du compte. */
+export async function signedLicense(): Promise<{ payload: string; sig: string } | null> {
+  const payload = await getSetting<string>(K.payload, ""), sig = await getSetting<string>(K.sig, "");
+  return payload && sig ? { payload, sig } : null;
+}
+
 async function ensureRegistered(platform: string, appVersion: string): Promise<string> {
   const existing = await secret();
   if (existing) return existing;

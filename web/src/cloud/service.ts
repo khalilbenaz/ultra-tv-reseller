@@ -19,6 +19,7 @@ import { reconcile } from "./reconcile";
 import { syncSourceState } from "./sharedState";
 import { setPosterFinder } from "@/lib/posterFallback";
 import { createBatcher, fromPrefs, shouldApply, toPrefs } from "./prefs";
+import { reportLicenseToCloud } from "@/license/cloudReport";
 
 const K = {
   worker: "cloud.worker", token: "cloud.token", deviceId: "cloud.deviceId", tokenAt: "cloud.tokenAt", etag: "cloud.etag",
@@ -151,6 +152,9 @@ async function doSync({ force, awaitSync }: { force?: boolean; awaitSync?: boole
     const booted = await getSetting<boolean>(K.prefsBoot, false);
     const etag = force || !booted ? "" : await getSetting<string>(K.etag, "");
     const res = await fetchConfig(worker, token, etag);
+    // Édition Pro : statut de licence signé vers le tableau de bord du compte (sans effet en standard, au plus 1×/24 h).
+    const sent = token;
+    void reportLicenseToCloud(worker, sent).catch(() => { /* réessayé à la prochaine synchro */ });
     const now = Date.now();
     await setSetting(K.lastSync, now);
     patch({ lastSyncAt: now });
@@ -300,12 +304,9 @@ export type ShareTarget = "all" | string[];
 
 export type ShareResult = { ok: true } | { ok: false; reason: "unavailable" | "limit" | "unsupported" | "error" };
 
-/** Partage une source locale avec le compte (et choisit les appareils destinataires). */
-export async function shareSource(source: Source, target: ShareTarget): Promise<ShareResult> {
-  const { worker } = useCloud.getState();
-  const token = await getToken();
-  if (!token) return { ok: false, reason: "error" };
-  const input: ProviderInput = {
+/** Corps envoyé au compte pour une source. Édition Pro : une source posée par le revendeur est marquée `managed`. */
+export function shareInput(source: Source, target: ShareTarget): ProviderInput {
+  return {
     id: source.cloudId,
     kind: source.type === "xtream" ? "XTREAM" : "M3U",
     name: source.name,
@@ -313,7 +314,16 @@ export async function shareSource(source: Source, target: ShareTarget): Promise<
     username: source.type === "xtream" ? source.username : undefined,
     password: source.type === "xtream" ? source.password : undefined,
     shareWith: target,
+    managed: source.resellerSourceId ? "reseller" : undefined,
   };
+}
+
+/** Partage une source locale avec le compte (et choisit les appareils destinataires). */
+export async function shareSource(source: Source, target: ShareTarget): Promise<ShareResult> {
+  const { worker } = useCloud.getState();
+  const token = await getToken();
+  if (!token) return { ok: false, reason: "error" };
+  const input = shareInput(source, target);
   if (source.type === "m3u" && source.m3uUrl.startsWith("file:")) return { ok: false, reason: "unsupported" };
   try {
     let p: CloudProvider;
