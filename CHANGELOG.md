@@ -2,7 +2,7 @@
 
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Versions suivant `VERSION`.
 
-## [Ultra TV Pro 1.2.48] — non publiée
+## [Ultra TV Pro 1.2.48] — 2026-10-06
 
 ### Corrigé
 - Fusion de main (1.2.48 Android TV) : lecture VLC sans saccades (décodage matériel direct en mode Auto, images en
