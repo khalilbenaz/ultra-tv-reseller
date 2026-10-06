@@ -2,6 +2,13 @@
 
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Versions suivant `VERSION`.
 
+## [Ultra TV Pro 1.2.30] — 2026-10-06
+
+### Corrigé
+- Fusion de main (1.2.27 et 1.2.28 Android TV) : menu latéral de nouveau fluide, libellés sans temps mort, titres sur
+  deux lignes (« Reprendre la lecture », « Derniers films / séries ajoutés », grilles Films / Séries), changement
+  d'écran sans superposition.
+
 ## [Ultra TV Pro 1.2.28] — 2026-10-05
 
 ### Nouveautés
@@ -9,6 +16,21 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Ver
 - Rappels de renouvellement automatiques du revendeur (traduits), appareils utilisés / autorisés affichés.
 - Fusion de main : menu adaptatif, liste d'épisodes, sous-titres non forcés, épisode suivant automatique, mise à jour
   macOS sans signature Apple (dépôt de distribution Pro).
+
+## [1.2.28] — 2026-10-06 (Android TV)
+
+### Corrigé
+- Menu latéral : ouverture de nouveau fluide (les neuf entrées étaient recomposées à chaque image de l'animation
+  depuis la 1.2.25) et libellés affichés sans temps mort.
+- Titres coupés sur une ligne : carte « Reprendre la lecture », « Derniers films / séries ajoutés » et grilles
+  Films / Séries affichent désormais le titre sur deux lignes.
+
+## [1.2.27] — 2026-10-05 (Android TV)
+
+### Corrections
+- Fluidité en changeant d'écran : plus de superposition de l'ancien écran sous le nouveau (fond opaque), menu refermé
+  dès le choix d'une page, Films et Séries sans message « aucun film » ni grille à plat transitoires (squelettes de
+  rangées à taille fixe pendant le chargement).
 
 ## [Bureau 1.2.27] — 2026-10-05
 
