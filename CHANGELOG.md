@@ -2,6 +2,13 @@
 
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Versions suivant `VERSION`.
 
+## [Ultra TV Pro 1.2.42] — non publiée
+
+### Amélioré
+- Fusion de main (1.2.42 Android TV) : mémoire mieux tenue (caches bornés, client d'images partagé), veille plus
+  économe (surveillance, partage entre appareils et Google TV ralentis en arrière-plan), planification des
+  synchronisations mémorisée.
+
 ## [Ultra TV Pro 1.2.41] — 2026-10-06
 
 ### Amélioré
@@ -61,6 +68,23 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Ver
 - Rappels de renouvellement automatiques du revendeur (traduits), appareils utilisés / autorisés affichés.
 - Fusion de main : menu adaptatif, liste d'épisodes, sous-titres non forcés, épisode suivant automatique, mise à jour
   macOS sans signature Apple (dépôt de distribution Pro).
+
+## [1.2.42] — 2026-10-06 (Android TV)
+
+### Amélioré
+- Mémoire :
+  - le cache des affiches TMDB est borné (1 500 titres) et vidé sous pression mémoire, alors qu'il grossissait à
+    chaque titre vu ;
+  - les images utilisent le client réseau partagé, avec au plus 2 décodages simultanés sur l'entrée de gamme.
+- Veille et batterie :
+  - la surveillance des blocages se réveille toutes les 5 s (et plus du tout sans télémétrie) au lieu de toutes les
+    2 s en permanence ;
+  - les changements des autres appareils ne sont récupérés toutes les 10 min que lorsque l'appli est affichée ;
+  - Google TV « Continuer à regarder » est mis à jour à l'arrêt de la lecture, et non toutes les 30 s pendant.
+- Démarrage :
+  - les tâches périodiques ne sont plus réécrites à chaque lancement (configuration mémorisée), ce qui ne décale plus
+    l'heure de la synchro quotidienne ;
+  - le rapport d'un éventuel plantage précédent est envoyé 20 s après le démarrage.
 
 ## [1.2.41] — 2026-10-06 (Android TV)
 
