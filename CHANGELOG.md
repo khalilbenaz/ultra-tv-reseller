@@ -2,10 +2,11 @@
 
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Versions suivant `VERSION`.
 
-## [Ultra TV Pro 1.2.34] — non publiée
+## [Ultra TV Pro 1.2.35] — 2026-10-06
 
 ### Corrigé
-- Fusion de main (1.2.34 Android TV) : Paramètres rouvre son accueil, et non la sous-page quittée (gestion des catégories).
+- Fusion de main (1.2.34 et 1.2.35 Android TV) : Paramètres rouvre son accueil, et non la sous-page quittée (gestion des
+  catégories) ; Direct › Tout n'est plus vide (séparateurs de la source retirés) et suit l'ordre des catégories choisi.
 
 ## [Ultra TV Pro 1.2.33] — 2026-10-06
 
@@ -35,6 +36,16 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Ver
 - Rappels de renouvellement automatiques du revendeur (traduits), appareils utilisés / autorisés affichés.
 - Fusion de main : menu adaptatif, liste d'épisodes, sous-titres non forcés, épisode suivant automatique, mise à jour
   macOS sans signature Apple (dépôt de distribution Pro).
+
+## [1.2.35] — 2026-10-06 (Android TV)
+
+### Corrigé
+- Direct › Tout : la liste n'est plus remplie d'en-têtes de sections vides (les séparateurs de la source, sans numéro,
+  remontaient tous en tête) ; « Tout » n'affiche que les chaînes.
+
+### Modifié
+- Direct › Tout : chaînes rangées dans l'ordre des catégories (celui choisi dans Paramètres › Catégories), puis dans
+  l'ordre de la playlist ; Haut/Bas suivent exactement cet ordre en lecture.
 
 ## [1.2.34] — 2026-10-06 (Android TV)
 
