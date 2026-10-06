@@ -8,6 +8,8 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Ver
 - Fusion de main (1.2.38 et 1.2.39 Android TV) : base locale plus rapide (index revus, guide dédoublonné et purgé des
   programmes passés, journal WAL), synchronisation sans verrou pendant le téléchargement, démarrage allégé, images en
   RGB_565 sur les petites boxes, Direct plus fluide ; test de non-régression des règles R8.
+- Fusion de main (bureau 1.2.28) : Mac, Windows et Linux, reconnexion automatique du direct (session fermée par le
+  serveur, coupure réseau, flux figé) au lieu du bouton « Réessayer ».
 
 ## [Ultra TV Pro 1.2.37] — 2026-10-06
 
@@ -50,6 +52,13 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Ver
 - Rappels de renouvellement automatiques du revendeur (traduits), appareils utilisés / autorisés affichés.
 - Fusion de main : menu adaptatif, liste d'épisodes, sous-titres non forcés, épisode suivant automatique, mise à jour
   macOS sans signature Apple (dépôt de distribution Pro).
+
+## [Bureau 1.2.28] — 2026-10-06
+
+### Corrigé
+- Direct : reconnexion automatique quand le serveur ferme la session (serveurs Xtream faibles), que le réseau coupe ou
+  que le flux reste figé plus de 12 s (délais croissants, 8 tentatives, message « Reconnexion… »). Avant, l'image
+  s'arrêtait avec un bouton « Réessayer » à cliquer soi-même.
 
 ## [1.2.39] — 2026-10-06 (Android TV)
 
