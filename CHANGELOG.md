@@ -2,12 +2,13 @@
 
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Versions suivant `VERSION`.
 
-## [Ultra TV Pro 1.2.41] — non publiée
+## [Ultra TV Pro 1.2.41] — 2026-10-06
 
 ### Amélioré
 - Fusion de main (1.2.41 Android TV) : interface plus fluide (compteurs limités, rangées Films / Séries en cache, Direct,
   Guide et menu sans recompositions inutiles), programme en cours du lecteur mis à jour à la fin du programme, pas de
-  changement de fréquence d'affichage inutile.
+  changement de fréquence d'affichage inutile. La 1.2.40 (build en échec sur un test instable) n'a pas été publiée :
+  ses changements sont dans cette version.
 
 ## [Ultra TV Pro 1.2.40] — 2026-10-06
 
