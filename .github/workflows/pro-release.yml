@@ -84,7 +84,9 @@ jobs:
         with:
           name: pro-android
           path: dist-android/*
-          retention-days: 14
+          # Ne sert qu'entre ce run et publish-pro.sh (fichiers gardés ensuite par les releases) : ~1,5 Go par version,
+          # une rétention longue remplit le quota de stockage des artefacts et bloque les versions suivantes.
+          retention-days: 3
 
   desktop:
     name: Desktop ${{ matrix.name }} (Pro)
@@ -141,7 +143,7 @@ jobs:
             electron/release/*.AppImage
             electron/release/*.blockmap
             electron/release/latest*.yml
-          retention-days: 14
+          retention-days: 3
 
   # Release dans CE dépôt privé (tag pro-vX.Y.Z), avec tous les fichiers. La distribution aux clients reste le dépôt
   # public khalilbenaz/ultra-tv-pro (scripts/publish-pro.sh) : les releases d'un dépôt privé ne sont pas téléchargeables par eux.
