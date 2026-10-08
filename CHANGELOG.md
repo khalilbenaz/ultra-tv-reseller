@@ -2,7 +2,7 @@
 
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Versions suivant `VERSION`.
 
-## [Ultra TV Pro 1.2.53] — non publiée
+## [Ultra TV Pro 1.2.53] — 2026-10-08
 
 ### Nouveautés
 - Fusion de main (1.2.53 Android TV, bureau 1.2.33) : rangées Trakt « Tendances » et « Populaires », rangées Trakt
