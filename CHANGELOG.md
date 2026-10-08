@@ -2,6 +2,14 @@
 
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Versions suivant `VERSION`.
 
+## [Ultra TV Pro 1.2.51] — 2026-10-08
+
+### Nouveautés
+- Fusion de main (1.2.51 Android TV, bureau 1.2.32) : rangées « Ma watchlist Trakt » et « Recommandé pour toi (Trakt) »
+  à l'accueil, limitées aux titres disponibles dans la playlist active, et marque « Vu » sur les films et les épisodes.
+  Android TV, mobile, Mac, Windows et Linux. Contient la 1.2.50 (Trakt), jamais publiée : son build a été bloqué par
+  le quota de stockage des artefacts GitHub.
+
 ## [Ultra TV Pro 1.2.50] — 2026-10-07
 
 ### Nouveautés
@@ -109,6 +117,17 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Ver
 - Rappels de renouvellement automatiques du revendeur (traduits), appareils utilisés / autorisés affichés.
 - Fusion de main : menu adaptatif, liste d'épisodes, sous-titres non forcés, épisode suivant automatique, mise à jour
   macOS sans signature Apple (dépôt de distribution Pro).
+
+## [1.2.51] — 2026-10-08 (Android TV) · [Bureau 1.2.32]
+
+### Ajouté
+- **Trakt dans les applications** (compte relié depuis l'espace client) :
+  - Accueil : rangées « Ma watchlist Trakt » et « Recommandé pour toi (Trakt) ». Seuls les films et séries
+    **disponibles dans la playlist chargée** y figurent ; un titre absent n'est jamais affiché, une rangée vide est
+    masquée.
+  - Marque « Vu » sur les films vus (fiche et affiches) et sur les épisodes vus d'une série.
+  - Rapprochement par titre et année (±1 an), titres anglais Trakt complétés des titres localisés et originaux TMDB
+    par le site ; règle identique sur le site, Android et le bureau (vecteurs de test partagés).
 
 ## [1.2.50] — 2026-10-07 (Android TV) · [Bureau 1.2.31]
 
