@@ -10,6 +10,10 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Ver
   Android TV, mobile, Mac, Windows et Linux. Contient la 1.2.50 (Trakt), jamais publiée : son build a été bloqué par
   le quota de stockage des artefacts GitHub.
 
+### Corrigé
+- Fusion de main (1.2.52 Android TV) : « Accueil » dans le menu ramène bien à l'accueil depuis une fiche ou une autre
+  page (TV et mobile).
+
 ## [Ultra TV Pro 1.2.50] — 2026-10-07
 
 ### Nouveautés
@@ -117,6 +121,13 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Ver
 - Rappels de renouvellement automatiques du revendeur (traduits), appareils utilisés / autorisés affichés.
 - Fusion de main : menu adaptatif, liste d'épisodes, sous-titres non forcés, épisode suivant automatique, mise à jour
   macOS sans signature Apple (dépôt de distribution Pro).
+
+## [1.2.52] — 2026-10-08 (Android TV)
+
+### Corrigé
+- Menu : choisir **Accueil** depuis une fiche ou une autre page ne faisait rien (il fallait appuyer sur Retour). La
+  navigation vers l'accueil restaurait la pile qu'elle venait de sauvegarder ; elle revient désormais réellement à
+  l'accueil, et chaque onglet garde sa propre pile. TV et mobile.
 
 ## [1.2.51] — 2026-10-08 (Android TV) · [Bureau 1.2.32]
 
