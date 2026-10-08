@@ -2,11 +2,16 @@
 
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Versions suivant `VERSION`.
 
-## [Ultra TV Pro 1.2.54] — non publiée
+## [Ultra TV Pro 1.2.55] — non publiée
 
 ### Nouveautés
-- Fusion de main (1.2.54 Android TV) : chaîne d'accueil Google TV « Ultra TV · Nouveautés » (derniers films et séries
-  ajoutés par la source active, 20 au plus) ; un titre ouvre sa fiche sans lancer la lecture.
+- Fusion de main (1.2.54 et 1.2.55 Android TV) : chaîne d'accueil Google TV « Ultra TV · Nouveautés » (derniers films et séries
+  ajoutés par la source active, 20 au plus) ; un titre ouvre sa fiche sans lancer la lecture. Elle est publiée comme
+  chaîne par défaut de l'appli, donc visible d'office.
+
+### Corrigé
+- Plus de lenteurs pendant une synchronisation (rangées Trakt recalculées une seule fois, en fin de synchro, en
+  priorité basse).
 
 ## [Ultra TV Pro 1.2.53] — 2026-10-08
 
@@ -139,6 +144,18 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Ver
 - Rappels de renouvellement automatiques du revendeur (traduits), appareils utilisés / autorisés affichés.
 - Fusion de main : menu adaptatif, liste d'épisodes, sous-titres non forcés, épisode suivant automatique, mise à jour
   macOS sans signature Apple (dépôt de distribution Pro).
+
+## [1.2.55] — 2026-10-08 (Android TV)
+
+### Corrigé
+- Lenteurs sur les box modestes : pendant une synchronisation, les rangées Trakt reparcouraient tout le catalogue
+  toutes les 3 s, sur tous les cœurs. Elles ne sont plus recalculées qu'à la fin d'une synchronisation, sur un seul
+  fil de basse priorité.
+- Google TV : la chaîne « Ultra TV · Nouveautés » restait invisible — publiée comme chaîne ordinaire alors que seule la
+  première chaîne d'une application (« par défaut ») s'affiche d'office. La première chaîne publiée est désormais la
+  chaîne par défaut ; sinon l'application propose une fois de l'ajouter à l'écran d'accueil. Une chaîne supprimée
+  par le système est recréée (Nouveautés et Favoris).
+- Google TV : journal de diagnostic (création des chaînes, programmes publiés, « Continuer à regarder », erreurs).
 
 ## [1.2.54] — 2026-10-08 (Android TV)
 
