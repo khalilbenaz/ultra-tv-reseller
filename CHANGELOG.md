@@ -2,7 +2,7 @@
 
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Versions suivant `VERSION`.
 
-## [Ultra TV Pro 1.2.55] — non publiée
+## [Ultra TV Pro 1.2.55] — 2026-10-08
 
 ### Nouveautés
 - Fusion de main (1.2.54 et 1.2.55 Android TV) : chaîne d'accueil Google TV « Ultra TV · Nouveautés » (derniers films et séries
