@@ -2,6 +2,12 @@
 
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Versions suivant `VERSION`.
 
+## [Ultra TV Pro 1.2.56] — 2026-10-09
+
+### Corrigé
+- Fusion de main (1.2.56 Android TV) : chaînes d'accueil Google TV (Favoris, Nouveautés) enfin créées sur les box qui
+  refusaient la vérification d'une chaîne inexistante (Xiaomi MiTV, Google « ross »).
+
 ## [Ultra TV Pro 1.2.55] — 2026-10-08
 
 ### Nouveautés
@@ -144,6 +150,14 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Ver
 - Rappels de renouvellement automatiques du revendeur (traduits), appareils utilisés / autorisés affichés.
 - Fusion de main : menu adaptatif, liste d'épisodes, sous-titres non forcés, épisode suivant automatique, mise à jour
   macOS sans signature Apple (dépôt de distribution Pro).
+
+## [1.2.56] — 2026-10-09 (Android TV)
+
+### Corrigé
+- Google TV : les chaînes « Favoris » et « Nouveautés » n'étaient jamais créées (relevé par le journal de diagnostic
+  de la 1.2.55). La vérification « la chaîne existe-t-elle ? » interrogeait le système avec l'identifiant -1 (erreur
+  « Unknown URI » sur Xiaomi) ou lisait une fiche de chaîne incomplète (plantage sur Google TV). Vérification
+  remplacée par une requête directe protégée ; un refus de création n'est plus enregistré comme une chaîne.
 
 ## [1.2.55] — 2026-10-08 (Android TV)
 
