@@ -2,6 +2,13 @@
 
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Versions suivant `VERSION`.
 
+## [Ultra TV Pro 1.2.58] — 2026-10-09
+
+### Corrigé
+- Fusion de main (1.2.58 Android TV) : mise à jour qui échouait (« package non valide », « la mise à jour n'a pas pu
+  être installée ») quand la mise à jour automatique et le bouton « Mettre à jour » téléchargeaient en même temps.
+  Le téléchargement est désormais unique, vérifié et repris s'il est coupé.
+
 ## [Ultra TV Pro 1.2.57] — 2026-10-09
 
 ### Corrigé
@@ -161,6 +168,15 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Ver
 - Rappels de renouvellement automatiques du revendeur (traduits), appareils utilisés / autorisés affichés.
 - Fusion de main : menu adaptatif, liste d'épisodes, sous-titres non forcés, épisode suivant automatique, mise à jour
   macOS sans signature Apple (dépôt de distribution Pro).
+
+## [1.2.58] — 2026-10-09 (Android TV)
+
+### Corrigé
+- Mise à jour : « La mise à jour n'a pas pu être installée » / « package non valide ». La mise à jour automatique
+  (30 s après le lancement) et le bouton « Mettre à jour » téléchargeaient en même temps dans le même fichier ; le
+  second vidait le dossier pendant que le premier écrivait (APK tronqué, empreinte différente). Un seul téléchargement
+  à la fois désormais, écrit dans un fichier temporaire, contrôlé en longueur, recommencé une fois s'il est corrompu ;
+  un APK déjà vérifié est réutilisé.
 
 ## [1.2.57] — 2026-10-09 (Android TV) · [Bureau 1.2.34]
 
