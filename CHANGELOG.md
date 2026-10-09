@@ -2,6 +2,17 @@
 
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Versions suivant `VERSION`.
 
+## [Ultra TV Pro 1.2.57] — 2026-10-09
+
+### Corrigé
+- Fusion de main (1.2.57 Android TV, bureau 1.2.34) : un film multi-audio démarre dans la langue de l'interface (ou la
+  dernière choisie pour ce titre) au lieu de l'anglais ; listes des pistes audio et sous-titres remplies et lisibles,
+  choisir l'audio ne réactive plus les sous-titres.
+
+### Amélioré
+- Android TV : plus fluide pendant une synchronisation (listes figées le temps de la synchro), vignettes sans fondu,
+  démarrage optimisé ; mesure de fluidité envoyée dans la télémétrie.
+
 ## [Ultra TV Pro 1.2.56] — 2026-10-09
 
 ### Corrigé
@@ -150,6 +161,25 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Ver
 - Rappels de renouvellement automatiques du revendeur (traduits), appareils utilisés / autorisés affichés.
 - Fusion de main : menu adaptatif, liste d'épisodes, sous-titres non forcés, épisode suivant automatique, mise à jour
   macOS sans signature Apple (dépôt de distribution Pro).
+
+## [1.2.57] — 2026-10-09 (Android TV) · [Bureau 1.2.34]
+
+### Corrigé
+- **Pistes audio** : un film à plusieurs langues démarrait toujours en anglais. La langue choisie est désormais, dans
+  l'ordre : la dernière choisie pour ce titre, le réglage Langues, sinon la langue de l'interface (fr / fra / fre
+  reconnus, ainsi que les pistes nommées « French », « VFF », « TRUEFRENCH »…). ExoPlayer et VLC (choix relancé quand
+  les pistes apparaissent). Un choix manuel n'est jamais écrasé.
+- **Listes de pistes** : relues en continu tant que le panneau est ouvert (elles restaient vides si le panneau était
+  ouvert avant l'arrivée des pistes), libellés lisibles (« Français (AC3 5.1) », « Anglais »). Choisir une piste
+  audio ne réactive plus les sous-titres.
+- Bureau : même choix automatique de la langue audio (flux HLS) et libellés lisibles.
+
+### Amélioré (fluidité, Android)
+- Pendant une synchronisation, l'accueil, le direct et les grilles ne relancent plus leurs requêtes sur tout le
+  catalogue à chaque lot inséré : une lecture pendant la synchro, puis une à la fin. Idem pour la chaîne Google TV
+  Nouveautés.
+- Plus de fondu à l'apparition des vignettes sur TV ; profil de démarrage enrichi.
+- Relevé de fluidité par écran (images saccadées, pire blocage, temps de démarrage) dans le journal de diagnostic.
 
 ## [1.2.56] — 2026-10-09 (Android TV)
 
